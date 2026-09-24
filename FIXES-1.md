@@ -8,12 +8,13 @@
 2. **Raw clinical value on the semi-public list.** Nurse home card shows "PA 90/55" as a badge, and the
    detail header too. The bed can see this screen. Replace with a non-clinical critical badge
    "Revisar" (alert red). The raw value lives ONLY behind the blur reveal.
-3. **Delete the placeholder media** (`media/*.mp4|webm|jpg`, keep `media/PROMPTS.md`). The fake poster
-   draws a tilted grey card over the mascot on the splash. With no files, the error fallback must show
-   the inline SVG mascot cleanly — verify the splash shows ONLY the mascot, no grey shapes, and that a
-   missing <source> does not log console errors that break acceptance (use `onerror` on the last
-   <source> or check `networkState`, and don't set `poster` when the file is absent — use a data
-   attribute and set poster only after the video loads).
+3. **Real videos are now in `media/`** (splash, onboarding-1, onboarding-2, empty: .mp4/.webm/.jpg;
+   doctor mascot). Do NOT delete or regenerate them. Wire them: splash → splash loop, patient onboarding
+   → onboarding-1 and onboarding-2, nurse Pendientes empty state → empty. Remove the inline blob mascot
+   where a video exists (keep it only as the error fallback). Video element: `mix-blend-mode: multiply`,
+   no frame/border/grey card behind it; the splash must show ONLY the doctor, no tilted grey shape.
+   Reference stills of the character: `media/frames/doctora-white.png` (can be used as <img> fallback
+   instead of the blob).
 4. Typo: "Lafamilia" → "La familia".
 5. Family face: patient is María González (female) but copy says "con él" / "acompañarlo". Make gender
    agree ("con ella", "acompañarla") — derive from patient data, add a `pronoun` field.
@@ -23,3 +24,5 @@
 7. Timeline time column wraps "3:00 p. m." onto two lines — widen the column or use "15:00".
 
 Re-run your acceptance script plus the new privacy assertion. Report in ≤ 8 lines.
+
+Testing: read TESTING.md and use both tools. Stay inside this directory.
