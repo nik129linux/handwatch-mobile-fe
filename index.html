@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fbfaf9">
+  <title>Acompaña · turno de enfermería</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <main class="stage" aria-label="Prototipo de app de enfermería">
+    <section class="phone" data-role="enfermero" style="--role-index: 0" aria-label="Vista de la aplicación Acompaña">
+      <div class="phone-notch" aria-hidden="true"></div>
+      <div class="status-bar" aria-hidden="true">
+        <span class="status-time">09:41</span>
+        <span class="status-icons">••• 5G 100%</span>
+      </div>
+
+      <div class="role-switch" role="tablist" aria-label="Cambiar de lector">
+        <div class="role-switch-indicator" aria-hidden="true"></div>
+        <button type="button" class="role-tab is-active" data-role="enfermero" role="tab" aria-selected="true">Enfermero</button>
+        <button type="button" class="role-tab" data-role="paciente" role="tab" aria-selected="false">Paciente</button>
+        <button type="button" class="role-tab" data-role="familia" role="tab" aria-selected="false">Familia</button>
+      </div>
+
+      <main id="screen" class="screen" aria-live="polite"></main>
+
+      <nav id="bottomNav" class="bottom-nav" aria-label="Navegación principal"></nav>
+
+      <div id="registrationLayer" class="registration-layer" aria-hidden="true"></div>
+      <div id="celebrationLayer" class="celebration-layer" aria-hidden="true"></div>
+      <div id="splashLayer" class="splash-layer" aria-label="Bienvenida a Acompaña">
+        <div class="splash-content">
+          <div class="splash-mascot" aria-hidden="true"></div>
+          <h1 class="splash-wordmark">Acompaña</h1>
+          <p class="splash-tagline">El turno, a la vista. Sin perder lo importante.</p>
+          <button type="button" class="splash-skip" data-splash-skip>Entrar ahora</button>
+        </div>
+      </div>
+    </section>
+    <p class="stage-hint">Cambia de rol y toca las tarjetas para explorar el turno.</p>
+  </main>
+  <script src="js/app.js" defer></script>
+</body>
+</html>

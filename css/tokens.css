@@ -1,0 +1,77 @@
+@property --accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0086fc;
+}
+
+:root {
+  --canvas: #fbfaf9;
+  --stone: #f2f0ed;
+  --sand: #f6f4ef;
+  --white: #ffffff;
+  --ink: #121212;
+  --charcoal: #343433;
+  --body: #474645;
+  --muted: #7e7e7d;
+  --stone-border: #e5d5c3;
+  --nurse: #0086fc;
+  --patient: #00ca48;
+  --family: #ffbb26;
+  --sky: #64c6ff;
+  --sun: #ffcd6c;
+  --coral: #ff58ae;
+  --alert: #ff2b3a;
+  --nurse-soft: #e8f3ff;
+  --patient-soft: #e5f9ec;
+  --family-soft: #fff4d6;
+  --critical-soft: #fff0f0;
+  --accent: var(--nurse);
+  --accent-soft: var(--nurse-soft);
+  --font-display: "Bricolage Grotesque", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-press: cubic-bezier(0.2, 0, 0, 1);
+  --duration-enter: 360ms;
+  --duration-exit: 240ms;
+  --duration-press: 120ms;
+  --phone-width: 390px;
+  --phone-height: 844px;
+  --phone-radius: 48px;
+  --nav-height: 76px;
+  --radius-card: 10px;
+  --radius-pill: 9999px;
+  --radius-cta: 32px;
+  --radius-badge: 6px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --text-caption: 12px;
+  --text-small: 15px;
+  --text-body: 17px;
+  --text-lead: 19px;
+  --text-section: 23px;
+  --text-heading: 32px;
+  --text-display: 44px;
+  --phone-shadow: rgba(0, 0, 0, .04) 0 1px 6px, rgba(0, 0, 0, .05) 0 0 24px;
+}
+
+.phone[data-role="enfermero"] {
+  --accent: var(--nurse);
+  --accent-soft: var(--nurse-soft);
+}
+
+.phone[data-role="paciente"] {
+  --accent: var(--patient);
+  --accent-soft: var(--patient-soft);
+}
+
+.phone[data-role="familia"] {
+  --accent: var(--family);
+  --accent-soft: var(--family-soft);
+}
