@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Prototipo móvil — App de enfermería</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="css/mockup.css">
+
+<!-- Mismo mecanismo que index.html: aplica el tema guardado antes del
+     primer paint. Afecta el STAGE (fondo detrás del teléfono), no el
+     interior del prototipo — Stryds es un sistema clínico nocturno por
+     diseño y el teléfono se queda oscuro siempre. -->
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+    } catch (e) { /* localStorage bloqueado */ }
+  })();
+</script>
+</head>
+<body>
+
+  <div class="mockup-topbar">
+    <!-- Vuelve al documento de arquitectura. No es una pantalla de la app: es chrome del entregable. -->
+    <a href="../index.html" class="back-to-doc">← Documento</a>
+    <button type="button" id="themeToggle" class="theme-toggle" aria-label="Cambiar a modo claro" aria-pressed="false">
+      <span class="theme-toggle-track"><span class="theme-toggle-thumb"></span></span>
+      <span class="theme-toggle-icon theme-toggle-icon-sun" aria-hidden="true">☀</span>
+      <span class="theme-toggle-icon theme-toggle-icon-moon" aria-hidden="true">☾</span>
+    </button>
+  </div>
+
+  <div class="stage">
+    <!-- El frame de teléfono es UNA sola instancia; las pantallas se apilan
+         adentro y se animan entrando/saliendo, como en un router real. -->
+    <div class="phone" role="application" aria-label="Prototipo de app de enfermería">
+
+      <div class="phone-notch" aria-hidden="true"></div>
+
+      <div class="status-bar">
+        <span class="status-time">09:41</span>
+        <span class="status-icons" aria-hidden="true">••• 5G 100%</span>
+      </div>
+
+      <!-- Selector de rol: cambia de app por completo, no es un tab interno.
+           ideas.md dice que son "dos personas sufriendo el mismo vacío de
+           información, cada una desde su lado" — acá la tercera es la familia. -->
+      <div class="role-switch" role="tablist" aria-label="Cambiar de lector">
+        <button type="button" class="role-tab is-active" data-role="enfermero" role="tab" aria-selected="true">Enfermero</button>
+        <button type="button" class="role-tab" data-role="paciente" role="tab" aria-selected="false">Paciente</button>
+        <button type="button" class="role-tab" data-role="familia" role="tab" aria-selected="false">Familia</button>
+      </div>
+
+      <div class="screen" id="screen">
+        <!-- Las pantallas concretas las inyecta mockup.js -->
+      </div>
+
+      <nav class="bottom-nav" id="bottomNav" aria-label="Navegación global"></nav>
+    </div>
+
+    <p class="stage-hint">Tocá las tarjetas, el selector de rol y los pendientes. Todo lo que se mueve es CSS real, sin capturas.</p>
+  </div>
+
+  <script src="js/mockup.js" defer></script>
+</body>
+</html>

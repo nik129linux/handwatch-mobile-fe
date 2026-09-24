@@ -1,0 +1,581 @@
+/*
+ * Prototipo navegable del caso mobile. Usa SOLO los tokens de ../../css/tokens.css.
+ * Las animaciones son el punto de este archivo: el documento principal mostraba
+ * una captura fija y no demostraba nada. Acá cada transición es real.
+ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background-color: var(--surface-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-doc-32) var(--space-doc-16);
+  gap: var(--space-doc-20);
+  transition: background-color var(--duration-slow) var(--ease-out-quart),
+              color var(--duration-slow) var(--ease-out-quart);
+}
+
+.mockup-topbar {
+  position: fixed;
+  top: var(--space-doc-16);
+  left: var(--space-doc-16);
+  right: var(--space-doc-16);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-app-12);
+}
+
+.back-to-doc {
+  font-family: var(--font-body);
+  font-size: var(--text-doc-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: var(--space-app-8) var(--space-app-16);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 1px var(--border-hairline);
+  background-color: var(--surface-card);
+  transition: color var(--duration-fast) var(--ease-out-quart),
+              box-shadow var(--duration-fast) var(--ease-out-quart);
+}
+
+.back-to-doc:hover {
+  color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+/* Toggle de tema — mismo componente visual que el documento principal */
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-app-8);
+  background-color: var(--surface-card);
+  box-shadow: 0 0 0 1px var(--border-hairline);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: var(--space-unit);
+  padding-right: var(--space-app-12);
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: var(--text-doc-caption);
+  transition: box-shadow var(--duration-fast) var(--ease-out-quart);
+}
+
+.theme-toggle:hover {
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.theme-toggle-track {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-card-alt);
+  flex-shrink: 0;
+  transition: background-color var(--duration-base) var(--ease-out-quart);
+}
+
+.theme-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  transition: transform var(--duration-base) var(--ease-out-expo);
+}
+
+:root[data-theme="light"] .theme-toggle-thumb {
+  transform: translateX(16px);
+}
+
+.theme-toggle-icon {
+  display: none;
+  font-size: 13px;
+}
+
+.theme-toggle-icon-sun { display: inline; }
+:root[data-theme="light"] .theme-toggle-icon-sun { display: none; }
+:root[data-theme="light"] .theme-toggle-icon-moon { display: inline; }
+.theme-toggle-icon-moon { display: none; }
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-doc-16);
+}
+
+.stage-hint {
+  max-width: 340px;
+  text-align: center;
+  font-size: var(--text-doc-caption);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ============ FRAME DEL TELÉFONO ============ */
+.phone {
+  position: relative;
+  width: 375px;
+  max-width: 92vw;
+  height: 780px;
+  max-height: 88vh;
+  background-color: var(--surface-canvas);
+  border-radius: 44px;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 0 0 8px var(--surface-card), 0 30px 60px -20px rgba(0, 0, 0, .6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 24px;
+  background-color: var(--surface-card);
+  border-radius: 0 0 16px 16px;
+  z-index: 30;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-app-12) var(--space-app-20) var(--space-app-8);
+  font-size: var(--text-app-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+/* ============ SELECTOR DE ROL — indicador que se desliza, no que aparece ============ */
+.role-switch {
+  position: relative;
+  display: flex;
+  margin: 0 var(--space-app-20) var(--space-app-12);
+  background-color: var(--surface-card);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.role-tab {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-app-caption);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-app-8) 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color var(--duration-base) var(--ease-out-quart);
+}
+
+.role-tab.is-active {
+  color: var(--color-primary-ink);
+}
+
+/* El indicador es UN elemento que se mueve con transform, calculado en JS
+   según qué tab está activo. Así el cambio de rol se ve como un desplazamiento
+   físico, no como un parpadeo de colores. */
+.role-switch-indicator {
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  background-color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: transform var(--duration-base) var(--ease-out-expo);
+}
+
+/* ============ PANTALLA — el contenedor donde entran/salen las vistas ============ */
+.screen {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.view {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: var(--space-app-16) var(--space-app-20) var(--space-app-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-app-16);
+  opacity: 0;
+  transform: translateX(24px);
+  pointer-events: none;
+  transition: opacity var(--duration-slow) var(--ease-out-quart), transform var(--duration-slow) var(--ease-out-expo);
+}
+
+.view.is-active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* Vista de detalle (empuja desde la derecha, como una navegación real) */
+.view.is-detail {
+  transform: translateX(100%);
+  background-color: var(--surface-canvas);
+  z-index: 5;
+}
+
+.view.is-detail.is-active {
+  transform: translateX(0);
+}
+
+.view-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-app-12);
+}
+
+.view-title {
+  font-family: var(--font-display);
+  font-size: var(--text-app-heading);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.view-subtitle {
+  font-size: var(--text-app-caption);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-hairline);
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  font-size: var(--text-app-body);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: box-shadow var(--duration-fast) var(--ease-out-quart);
+}
+
+.back-btn:hover {
+  border-color: var(--color-primary);
+}
+
+/* ============ TARJETA DE PACIENTE (molécula, reusada del documento) ============ */
+.p-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-app-12);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card-app);
+  padding: var(--space-app-16);
+  cursor: pointer;
+  transition: box-shadow var(--duration-fast) var(--ease-out-quart), transform var(--duration-fast) var(--ease-out-expo);
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  color: inherit;
+}
+
+.p-card:active {
+  transform: scale(.98);
+}
+
+.p-card:hover {
+  border-color: var(--border-strong);
+}
+
+.p-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-canvas);
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
+}
+
+.p-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.p-name {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-app-body);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.p-meta {
+  font-size: var(--text-app-caption);
+  color: var(--text-muted);
+}
+
+/* ============ BADGES — tres significados, tres colores (igual que el documento) ============ */
+.badge-honesty, .badge-critical, .badge-pending {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-app-caption);
+  font-weight: var(--font-weight-medium);
+  padding: 4px var(--space-app-12);
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.badge-honesty { background: var(--state-honesty-bg); border: 1px solid var(--state-honesty-border); color: var(--state-honesty-text); }
+.badge-critical { background: var(--state-critical-bg); border: 1px solid var(--state-critical-border); color: var(--state-critical-text); }
+.badge-pending { background: var(--state-pending-bg); border: 1px solid var(--state-pending-border); color: var(--state-pending-text); }
+
+/* ============ EL PATRÓN CLAVE DEL CASO: dato clínico oculto tras un toque
+   deliberado. La pantalla del enfermero la ve el paciente desde la cama
+   (ideas.md:31): "no lo resuelve ningún tamaño de letra". Acá se resuelve con
+   un blur real que el enfermero retira a propósito, no con texto chico. ============ */
+.clinical-value {
+  position: relative;
+  font-family: monospace;
+  font-size: var(--text-app-caption);
+  color: var(--state-critical-text);
+  filter: blur(5px);
+  transition: filter var(--duration-base) var(--ease-out-quart);
+  cursor: pointer;
+  user-select: none;
+}
+
+.clinical-value.is-revealed {
+  filter: blur(0);
+}
+
+.reveal-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: var(--space-unit);
+}
+
+/* ============ SECCIÓN / TÍTULOS DENTRO DE LA VISTA ============ */
+.list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.list-heading-label {
+  font-size: var(--text-app-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-app-12);
+}
+
+/* ============ TIMELINE (vista paciente) ============ */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timeline-item {
+  position: relative;
+  padding: var(--space-app-12) 0 var(--space-app-12) var(--space-app-20);
+  border-left: 2px solid var(--border-hairline);
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+}
+
+.timeline-item.is-pending::before {
+  background-color: var(--text-muted);
+}
+
+.timeline-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.timeline-text {
+  font-size: var(--text-app-body);
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+/* ============ BOTÓN 1-TOQUE — la confirmación de evento previsto ============ */
+.tap-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-ink);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: var(--space-app-8) var(--space-app-16);
+  font-size: var(--text-app-caption);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out-expo), opacity var(--duration-slow) var(--ease-out-quart);
+  flex-shrink: 0;
+}
+
+.tap-confirm:active {
+  transform: scale(.92);
+}
+
+.tap-confirm.is-done {
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* Micro-animación de confirmación: un check que aparece y se desvanece,
+   feedback inmediato para "cualquier cosa que tarde más de unos segundos
+   no se va a usar" (ideas.md:25). Único lugar del proyecto con overshoot
+   (cubic-bezier con pico >1): es la respuesta táctil a un toque real del
+   enfermero, no decoración — en cualquier otro elemento se usa ease-out. */
+@keyframes confirm-pop {
+  0% { transform: scale(.5); opacity: 0; }
+  40% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.confirm-check {
+  display: none;
+  animation: confirm-pop var(--duration-slow) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tap-confirm.is-done .confirm-check {
+  display: inline;
+}
+
+.tap-confirm.is-done .confirm-label {
+  display: none;
+}
+
+/* ============ NAV INFERIOR — global, persiste selección ============ */
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: var(--nav-height-app);
+  border-top: 1px solid var(--border-hairline);
+  background-color: var(--surface-card);
+  flex-shrink: 0;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  padding: var(--space-app-8) var(--space-app-12);
+  transition: color var(--duration-base) var(--ease-out-quart);
+}
+
+.nav-item .nav-icon {
+  font-size: var(--text-app-subheading);
+  transition: transform var(--duration-base) var(--ease-out-expo);
+}
+
+.nav-item.is-active {
+  color: var(--color-primary);
+}
+
+.nav-item.is-active .nav-icon {
+  transform: translateY(-2px) scale(1.08);
+}
+
+/* ============ ANIMACIÓN DE ENTRADA ESCALONADA DE TARJETAS ============ */
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.view.is-active .card-list .p-card,
+.view.is-active .timeline-item {
+  animation: card-in var(--duration-slow) var(--ease-out-quart) both;
+}
+
+.view.is-active .card-list .p-card:nth-child(1) { animation-delay: .02s; }
+.view.is-active .card-list .p-card:nth-child(2) { animation-delay: .07s; }
+.view.is-active .card-list .p-card:nth-child(3) { animation-delay: .12s; }
+.view.is-active .card-list .p-card:nth-child(4) { animation-delay: .17s; }
+
+.view.is-active .timeline-item:nth-child(1) { animation-delay: .02s; }
+.view.is-active .timeline-item:nth-child(2) { animation-delay: .07s; }
+.view.is-active .timeline-item:nth-child(3) { animation-delay: .12s; }
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: .001s !important;
+    transition-duration: .001s !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .phone {
+    height: 92vh;
+    border-radius: 32px;
+  }
+}
