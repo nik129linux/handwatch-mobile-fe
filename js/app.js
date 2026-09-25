@@ -163,10 +163,6 @@
     return ICONS[name] || ICONS.check;
   }
 
-  function mascotSvg() {
-    return '<svg class="mascot-svg" viewBox="0 0 160 160" aria-hidden="true"><path d="M80 14C47 14 23 40 23 77c0 38 24 68 57 68s57-30 57-68C137 40 113 14 80 14Z" fill="#64c6ff" stroke="#343433" stroke-width="3"></path><path d="M41 93c8 13 22 20 39 20 17 0 31-7 39-20" fill="none" stroke="#343433" stroke-width="2.5" stroke-linecap="round" opacity=".7"></path><circle cx="62" cy="70" r="5" fill="#343433"></circle><circle cx="99" cy="70" r="5" fill="#343433"></circle><path d="M69 90c6 5 16 5 22 0" fill="none" stroke="#343433" stroke-width="3" stroke-linecap="round"></path><path d="M27 53c-5-10-1-20 8-24M132 51c5-10 1-20-8-24" fill="none" stroke="#343433" stroke-width="3" stroke-linecap="round"></path></svg>';
-  }
-
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, function (character) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
@@ -246,10 +242,10 @@
     }
     return '<div class="empty-state" data-empty-state>' +
       '<div class="confetti-layer" aria-hidden="true">' + pieces + '</div>' +
-      videoSlot('empty', 'Gotita flotando tranquila') +
+      videoSlot('empty', 'Doctora flotando tranquila') +
       '<span class="completion-mark">' + icon('check') + '</span>' +
       '<h2>Todo confirmado</h2><p>El turno está al día. Puedes respirar un momento.</p>' +
-      '<button type="button" class="accent-link" data-go-home>Volver al turno ' + icon('arrow') + '</button>' +
+      '<button type="button" class="accent-link empty-state-link" data-go-home>Volver al turno ' + icon('chevron') + '</button>' +
       '</div>';
   }
 
@@ -613,7 +609,7 @@
     if (state.completionTimer) window.clearTimeout(state.completionTimer);
     var pieces = '';
     for (var index = 1; index <= 12; index += 1) pieces += '<span class="confetti-piece" style="--confetti-delay:' + (index * 30) + 'ms"></span>';
-    app.celebrationLayer.innerHTML = '<div class="celebration-card"><div class="celebration-mascot">' + mascotSvg() + '</div><span class="completion-mark">' + icon('check') + '</span><h2>Turno al día</h2><p>Todo confirmado. El equipo puede seguir con tranquilidad.</p><button type="button" class="primary-button" data-close-celebration>Seguir con el turno</button><div class="confetti-layer" aria-hidden="true">' + pieces + '</div></div>';
+    app.celebrationLayer.innerHTML = '<div class="celebration-card"><div class="celebration-mascot"><img class="celebration-doctor-image" src="media/frames/doctora-white.png" alt="Doctora celebrando"></div><span class="completion-mark">' + icon('check') + '</span><h2>Turno al día</h2><p>Todo confirmado. El equipo puede seguir con tranquilidad.</p><button type="button" class="primary-button" data-close-celebration>Seguir con el turno</button><div class="confetti-layer" aria-hidden="true">' + pieces + '</div></div>';
     app.celebrationLayer.classList.add('is-visible');
     app.celebrationLayer.setAttribute('aria-hidden', 'false');
     var closeButton = app.celebrationLayer.querySelector('[data-close-celebration]');
@@ -744,21 +740,53 @@
 
   function initSplash() {
     var mascot = app.splashLayer.querySelector('.splash-mascot');
-    mascot.innerHTML = videoSlot('splash', 'Gotita saludando');
+    mascot.innerHTML = videoSlot('splash', 'Doctora saludando');
     bindVideos(app.splashLayer);
+    var maxTimer = null;
+    var cycleTimer = null;
     var finish = function () {
       if (app.splashLayer.classList.contains('is-leaving')) return;
+      if (maxTimer !== null) window.clearTimeout(maxTimer);
+      if (cycleTimer !== null) window.clearTimeout(cycleTimer);
       app.splashLayer.querySelectorAll('.loop').forEach(function (video) { video.pause(); });
       app.splashLayer.classList.add('is-leaving');
       window.setTimeout(function () { app.splashLayer.setAttribute('aria-hidden', 'true'); }, 320);
       renderRoute('forward', true);
     };
-    app.splashLayer.querySelector('[data-splash-skip]').addEventListener('click', finish);
-    app.splashLayer.addEventListener('click', function (event) {
-      if (event.target.closest('[data-splash-skip]')) return;
-      if (event.target.closest('.splash-content')) finish();
+    var skipButton = app.splashLayer.querySelector('[data-splash-skip]');
+    if (skipButton) skipButton.addEventListener('click', finish);
+    app.splashLayer.addEventListener('click', function () {
+      finish();
     });
-    window.setTimeout(finish, 1200);
+    if (reducedMotion.matches) {
+      window.setTimeout(finish, 1200);
+      return;
+    }
+    maxTimer = window.setTimeout(finish, 5000);
+    var splashVideo = mascot.querySelector('video');
+    var lastTime = 0;
+    var completeCycle = function () { finish(); };
+    var armCycleTimer = function () {
+      if (app.splashLayer.classList.contains('is-leaving') || cycleTimer !== null || !splashVideo || !Number.isFinite(splashVideo.duration)) return;
+      if (maxTimer !== null) {
+        window.clearTimeout(maxTimer);
+        maxTimer = null;
+      }
+      cycleTimer = window.setTimeout(finish, Math.min(splashVideo.duration * 1000, 5000));
+    };
+    if (splashVideo) {
+      splashVideo.addEventListener('ended', completeCycle);
+      splashVideo.addEventListener('timeupdate', function () {
+        var currentTime = splashVideo.currentTime;
+        if (lastTime > 0.05 && currentTime < lastTime) {
+          completeCycle();
+          return;
+        }
+        lastTime = currentTime;
+      });
+      splashVideo.addEventListener('loadedmetadata', armCycleTimer);
+      if (splashVideo.readyState >= 1) armCycleTimer();
+    }
   }
 
   function initClock() {

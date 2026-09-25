@@ -45,7 +45,14 @@ function contrastRatio(foreground, background) {
     assert.strictEqual(await fallback.evaluate(node => getComputedStyle(node).mixBlendMode), 'multiply', `${slot} image fallback has an opaque background`);
     assert.strictEqual(await container.evaluate(node => getComputedStyle(node).backgroundColor), 'rgba(0, 0, 0, 0)', `${slot} has a background card`);
     const box = await container.boundingBox();
+    const videoBox = await video.boundingBox();
     assert(box && box.width > 0 && box.height > 0, `${slot} video has no rendered size`);
+    assert(videoBox && Math.abs(videoBox.width - box.width) <= 1 && Math.abs(videoBox.height - box.height) <= 1, `${slot} video does not fill its slot`);
+  }
+  async function assertVideoSize(page, slot, expected) {
+    const box = await page.locator(`[data-video-slot="${slot}"] video`).boundingBox();
+    assert(box && Math.abs(box.width - expected) <= 10 && Math.abs(box.height - expected) <= 10, `${slot} video box is not ${expected}px ±10`);
+    assert(box && Math.abs(box.width - box.height) <= 1, `${slot} video box is not square`);
   }
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -56,9 +63,12 @@ function contrastRatio(foreground, background) {
   assert.strictEqual(await page.locator('.splash-mascot').evaluate(node => getComputedStyle(node).backgroundColor), 'rgba(0, 0, 0, 0)', 'splash has a grey shape behind the doctor');
   assert.strictEqual(await page.locator('.splash-content').evaluate(node => getComputedStyle(node).animationName), 'none', 'animated splash ancestor blocks video blending');
   assert.strictEqual(await page.locator('.splash-mascot').evaluate(node => getComputedStyle(node).animationName), 'none', 'animated mascot ancestor blocks video blending');
-  const splashVideoBox = await page.locator('[data-video-slot="splash"]').boundingBox();
-  assert(splashVideoBox && splashVideoBox.width >= 180 && splashVideoBox.height >= 180, 'splash video has no rendered size');
-  await page.locator('[data-splash-skip]').click();
+  await assertVideoSize(page, 'splash', 180);
+  await page.waitForTimeout(1600);
+  assert(await page.locator('#splashLayer').isVisible(), 'splash advanced before the first video cycle');
+  const splashBounds = await page.locator('#splashLayer').boundingBox();
+  assert(splashBounds, 'splash bounds are missing');
+  await page.mouse.click(splashBounds.x + splashBounds.width / 2, splashBounds.y + splashBounds.height - 100);
   await page.waitForTimeout(500);
   assert(await page.locator('[data-view-key="nurse-home"]').isVisible(), 'nurse home did not open');
   assert(await page.locator('[data-video-slot="splash"] video').evaluate(node => node.paused), 'hidden splash video is still playing');
@@ -133,7 +143,25 @@ function contrastRatio(foreground, background) {
   await page.waitForTimeout(450);
   assert.strictEqual(await page.locator('[data-empty-state]').count(), 1, 'empty state did not render');
   await assertVideoSlot(page, 'empty');
-  assert((await page.locator('.celebration-layer.is-visible .confetti-piece').count()) >= 8, 'confetti did not render');
+  await assertVideoSize(page, 'empty', 160);
+  const emptyStateButton = page.locator('[data-go-home]');
+  const emptyStateButtonBox = await emptyStateButton.boundingBox();
+  assert(emptyStateButtonBox && emptyStateButtonBox.height < 60, 'empty-state button is too tall');
+  const emptyStateButtonStyle = await emptyStateButton.evaluate(node => {
+    const style = getComputedStyle(node);
+    return { background: style.backgroundColor, color: style.color, radius: style.borderRadius, whiteSpace: style.whiteSpace };
+  });
+  assert.deepStrictEqual(emptyStateButtonStyle, { background: 'rgb(246, 244, 239)', color: 'rgb(18, 18, 18)', radius: '32px', whiteSpace: 'nowrap' });
+  const emptyStateButtonIcon = emptyStateButton.locator('svg');
+  assert.strictEqual(await emptyStateButtonIcon.count(), 1, 'empty-state chevron is missing');
+  assert((await emptyStateButtonIcon.evaluate(node => getComputedStyle(node).transitionProperty)).includes('transform'), 'empty-state chevron does not animate');
+  const celebration = page.locator('.celebration-layer.is-visible');
+  assert.strictEqual(await celebration.locator('.mascot-svg').count(), 0, 'old blob remains visible in celebration');
+  const celebrationDoctor = celebration.locator('img[src="media/frames/doctora-white.png"]');
+  assert.strictEqual(await celebrationDoctor.count(), 1, 'celebration doctor is missing');
+  assert(await celebrationDoctor.isVisible(), 'celebration doctor is not visible');
+  assert.strictEqual(await celebrationDoctor.evaluate(node => getComputedStyle(node).mixBlendMode), 'multiply', 'celebration doctor is not multiplied');
+  assert((await celebration.locator('.confetti-piece').count()) >= 8, 'confetti did not render');
   await page.locator('[data-close-celebration]').click();
   await page.waitForTimeout(400);
 
@@ -149,6 +177,8 @@ function contrastRatio(foreground, background) {
   assert.strictEqual(await page.locator('.onboarding-card').first().evaluate(node => getComputedStyle(node).animationName), 'none', 'animated onboarding ancestor blocks video blending');
   await assertVideoSlot(page, 'onboarding-1');
   await assertVideoSlot(page, 'onboarding-2');
+  await assertVideoSize(page, 'onboarding-1', 120);
+  await assertVideoSize(page, 'onboarding-2', 120);
   await page.locator('[data-nav="preguntas"]').click();
   await page.waitForTimeout(400);
   assert(await page.locator('[data-view-key="patient-questions"]').isVisible(), 'questions view did not open');
@@ -178,6 +208,15 @@ function contrastRatio(foreground, background) {
   await page.setViewportSize({ width: 390, height: 844 });
   const mobilePhone = await page.locator('.phone').evaluate(node => ({ width: getComputedStyle(node).width, height: getComputedStyle(node).height, radius: getComputedStyle(node).borderRadius, shadow: getComputedStyle(node).boxShadow }));
   assert.deepStrictEqual(mobilePhone, { width: '390px', height: '844px', radius: '0px', shadow: 'none' });
+  await page.goto(pathToFileURL(path.join(root, 'index.html')).href);
+  await page.waitForFunction(() => {
+    const video = document.querySelector('[data-video-slot="splash"] video');
+    return video && video.readyState >= 1;
+  }, null, { timeout: 3000 });
+  const cycleStarted = await page.evaluate(() => performance.now());
+  await page.waitForFunction(() => document.querySelector('#splashLayer').classList.contains('is-leaving'), null, { timeout: 5500 });
+  const cycleElapsed = await page.evaluate(start => performance.now() - start, cycleStarted);
+  assert(cycleElapsed >= 4900 && cycleElapsed <= 5400, `splash cycle timing is ${cycleElapsed}ms`);
   assert.strictEqual(consoleErrors.length, 0, `console errors: ${consoleErrors.join('; ')}`);
   assert.strictEqual(pageErrors.length, 0, `page errors: ${pageErrors.join('; ')}`);
   assert.strictEqual(failedRequests.length, 0, `failed requests: ${failedRequests.join('; ')}`);

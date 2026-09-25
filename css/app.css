@@ -440,6 +440,50 @@ a:focus-visible {
   color: var(--ink);
 }
 
+.empty-state-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  max-width: 100%;
+  padding: 10px 18px;
+  border-radius: 32px;
+  background: var(--sand);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: 22px;
+  white-space: nowrap;
+  transition: transform var(--duration-press) var(--ease-press),
+    background-color var(--duration-enter) var(--ease-enter);
+}
+
+.empty-state-link:hover {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.empty-state-link:active {
+  transform: scale(0.97);
+}
+
+.empty-state-link .icon-svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  transition: transform var(--duration-enter) var(--ease-enter);
+}
+
+.empty-state-link:hover .icon-svg {
+  transform: translateX(3px);
+}
+
 .home-intro {
   display: flex;
   flex-direction: column;
@@ -1082,13 +1126,6 @@ a:focus-visible {
   animation: mascot-float 3.6s var(--ease-enter) infinite alternate;
 }
 
-.mascot-svg {
-  display: block;
-  width: 112px;
-  height: 112px;
-  overflow: visible;
-}
-
 .empty-state h2 {
   max-width: 280px;
   margin: 0;
@@ -1457,6 +1494,16 @@ a:focus-visible {
   line-height: 16px;
 }
 
+.onboarding-card .video-slot {
+  width: 100%;
+  max-width: 120px;
+  height: auto;
+  aspect-ratio: 1;
+  min-height: 0;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
 .video-slot {
   position: relative;
   display: flex;
@@ -1506,11 +1553,21 @@ a:focus-visible {
   mix-blend-mode: multiply;
 }
 
+.onboarding-card .video-fallback img {
+  width: 120px;
+  height: 120px;
+}
+
+.empty-state .video-fallback img {
+  width: 160px;
+  height: 160px;
+}
+
 .empty-state .video-slot {
-  width: 148px;
-  height: 148px;
-  min-height: 148px;
-  flex: 0 0 148px;
+  width: 160px;
+  height: 160px;
+  min-height: 160px;
+  flex: 0 0 160px;
 }
 
 .timeline {
@@ -1867,8 +1924,8 @@ a:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 190px;
-  height: 190px;
+  width: 180px;
+  height: 180px;
   border-radius: 0;
   background: transparent;
 }
@@ -1880,8 +1937,8 @@ a:focus-visible {
 }
 
 .splash-mascot .video-fallback img {
-  width: 144px;
-  height: 144px;
+  width: 180px;
+  height: 180px;
 }
 
 .splash-wordmark {
@@ -1984,12 +2041,20 @@ a:focus-visible {
 }
 
 .celebration-mascot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 126px;
+  height: 126px;
   animation: mascot-pop 620ms var(--ease-enter) both;
 }
 
-.celebration-mascot .mascot-svg {
+.celebration-mascot .celebration-doctor-image {
+  display: block;
   width: 126px;
   height: 126px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
 }
 
 .sr-only {
