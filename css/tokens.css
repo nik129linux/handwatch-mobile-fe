@@ -16,7 +16,9 @@
   --stone-border: #e5d5c3;
   --nurse: #0086fc;
   --patient: #00ca48;
+  --patient-text: #087f35;
   --family: #ffbb26;
+  --family-text: #d48f00;
   --sky: #64c6ff;
   --sun: #ffcd6c;
   --coral: #ff58ae;
@@ -67,11 +69,11 @@
 }
 
 .phone[data-role="paciente"] {
-  --accent: var(--patient);
+  --accent: var(--patient-text);
   --accent-soft: var(--patient-soft);
 }
 
 .phone[data-role="familia"] {
-  --accent: var(--family);
+  --accent: var(--family-text);
   --accent-soft: var(--family-soft);
 }

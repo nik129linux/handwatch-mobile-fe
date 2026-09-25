@@ -19,8 +19,9 @@
       initials: 'CR',
       name: 'Carlos Rodríguez',
       room: 'Hab. 304-A',
+      pronoun: 'él',
       status: 'critical',
-      statusLabel: 'PA 90/55',
+      statusLabel: 'Revisar',
       clinical: 'PA 90/55 · taquicardia 112 · alerta protocolo hipotensión',
       patientText: 'El equipo está pendiente de sus signos',
       familyText: 'Bajo observación, el equipo está con él'
@@ -30,6 +31,7 @@
       initials: 'MG',
       name: 'María González',
       room: 'Hab. 304-B',
+      pronoun: 'ella',
       status: 'pending',
       statusLabel: 'Medicación 11:00',
       clinical: 'Enoxaparina 40mg SC, vía abdominal, 11:00',
@@ -41,6 +43,7 @@
       initials: 'JP',
       name: 'Jorge Pérez',
       room: 'Hab. 305-A',
+      pronoun: 'él',
       status: 'ready',
       statusLabel: '1 toque',
       clinical: 'Cambio postural decúbito lateral izq. — previsto 11:20',
@@ -48,6 +51,7 @@
       familyText: '—'
     }
   ];
+  var FAMILY_PATIENT_ID = 'mg';
 
   var TASKS = [
     {
@@ -82,11 +86,13 @@
     { time: '1:00 p. m.', text: 'La enfermera vuelve a hacer la ronda', pending: true }
   ];
 
-  var TIMELINE_FAMILIA = [
-    { time: 'Hoy', text: 'Tratamiento de la mañana cumplido', pending: false },
-    { time: 'Hoy', text: 'El equipo está con él, sin novedad que reportar', pending: false },
-    { time: '3:00 p. m.', text: 'Horario de visita disponible', pending: true }
-  ];
+  function familyTimeline(patient) {
+    return [
+      { time: 'Hoy', text: 'Tratamiento de la mañana cumplido', pending: false },
+      { time: 'Hoy', text: 'El equipo está con ' + patient.pronoun + ', sin novedad que reportar', pending: false },
+      { time: '15:00', text: 'Horario de visita disponible', pending: true }
+    ];
+  }
 
   var NAV_BY_ROLE = {
     enfermero: [
@@ -105,14 +111,19 @@
   };
 
   var ROLE_INDEX = { enfermero: 0, paciente: 1, familia: 2 };
+  var HOME_NAV = {
+    enfermero: 'turno',
+    paciente: 'estado',
+    familia: 'pasa'
+  };
 
   var state = {
     role: 'enfermero',
     detailPatient: null,
     activeNav: {
-      enfermero: 'turno',
-      paciente: 'estado',
-      familia: 'pasa'
+      enfermero: HOME_NAV.enfermero,
+      paciente: HOME_NAV.paciente,
+      familia: HOME_NAV.familia
     },
     confirmed: {},
     sheetOpen: false,
@@ -183,7 +194,7 @@
       '<video class="loop" autoplay muted loop playsinline preload="metadata" poster="media/' + escapeHtml(slot) + '.jpg" aria-hidden="true">' +
       '<source src="media/' + escapeHtml(slot) + '.webm" type="video/webm">' +
       '<source src="media/' + escapeHtml(slot) + '.mp4" type="video/mp4">' +
-      '</video><div class="video-fallback">' + mascotSvg() + '</div></div>';
+      '</video><div class="video-fallback"><img src="media/frames/doctora-white.png" alt=""></div></div>';
   }
 
   function patientBadge(patient) {
@@ -262,7 +273,7 @@
       '<div class="detail-section"><h2 class="detail-section-title">Registro clínico</h2><div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico">' + escapeHtml(patient.clinical) + '</button><button type="button" class="reveal-button" data-reveal>Mostrar dato clínico ' + icon('eye') + '</button><p class="view-copy muted-copy">Oculto por defecto porque esta pantalla también se ve desde la cama.</p></div></div>' +
       '<div class="privacy-note">' + icon('shield') + '<span>El dato sensible queda detrás de un toque deliberado. Si decides comunicarlo, hazlo con calma.</span></div>' +
       '<div class="detail-section"><h2 class="detail-section-title">Eventos del turno</h2><div class="detail-list">' + patientTasks.map(function (task) { return detailRow(task.time + ' · ' + task.title, isConfirmed(task.id) ? 'Confirmado' : 'Pendiente', false); }).join('') + '</div></div>' +
-      '<p class="view-copy muted-copy">Lafamilia recibe solo un resumen del turno, sin valores clínicos.</p></div>';
+      '<p class="view-copy muted-copy">La familia recibe solo un resumen del turno, sin valores clínicos.</p></div>';
   }
 
   function onboardingCard(slot, title, copy) {
@@ -293,9 +304,11 @@
   }
 
   function renderFamily() {
-    return '<div class="patient-intro"><p class="eyebrow">María González · Hab. 304-B</p><h1 class="view-title">Qué pasa</h1><p class="view-copy">Un resumen sencillo para acompañarlo con tranquilidad.</p></div>' +
-      '<div class="family-summary"><strong>El equipo está con él</strong><span>El tratamiento de la mañana va avanzando con normalidad.</span></div>' +
-      '<div class="section-heading"><h2 class="section-label">Hoy</h2><span class="section-meta">Sin datos clínicos</span></div>' + timeline(TIMELINE_FAMILIA) +
+    var patient = patientById(FAMILY_PATIENT_ID);
+    var objectPronoun = patient.pronoun === 'ella' ? 'la' : 'lo';
+    return '<div class="patient-intro"><p class="eyebrow">' + escapeHtml(patient.name) + ' · ' + escapeHtml(patient.room) + '</p><h1 class="view-title">Qué pasa</h1><p class="view-copy">Un resumen sencillo para acompañar' + objectPronoun + ' con tranquilidad.</p></div>' +
+      '<div class="family-summary"><strong>El equipo está con ' + escapeHtml(patient.pronoun) + '</strong><span>El tratamiento de la mañana va avanzando con normalidad.</span></div>' +
+      '<div class="section-heading"><h2 class="section-label">Hoy</h2><span class="section-meta">Sin datos clínicos</span></div>' + timeline(familyTimeline(patient)) +
       '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de 3:00 p. m. a 5:00 p. m.</span></span><span class="detail-chevron">' + icon('chevron') + '</span></div>';
   }
 
@@ -347,6 +360,7 @@
         if (fallback) fallback.classList.add('is-visible');
       };
       video.addEventListener('error', showFallback);
+      video.querySelectorAll('source').forEach(function (source) { source.addEventListener('error', showFallback); });
       video.addEventListener('loadeddata', function () {
         video.classList.remove('is-hidden');
         if (fallback) fallback.classList.remove('is-visible');
@@ -437,6 +451,7 @@
     var currentIndex = ROLE_INDEX[state.role];
     state.role = role;
     state.detailPatient = null;
+    state.activeNav[role] = HOME_NAV[role];
     app.phone.dataset.role = role;
     app.phone.style.setProperty('--role-index', nextIndex);
     app.roleTabs.forEach(function (tab, index) {
@@ -445,8 +460,9 @@
       tab.setAttribute('aria-selected', String(active));
     });
     if (state.sheetOpen) closeRegistrationSheet(false);
+    app.screen.innerHTML = '';
     renderBottomNav();
-    renderRoute(nextIndex >= currentIndex ? 'forward' : 'back');
+    renderRoute(nextIndex >= currentIndex ? 'forward' : 'back', true);
   }
 
   function openPatientDetail(patientId, sourceCard) {
@@ -732,6 +748,7 @@
     bindVideos(app.splashLayer);
     var finish = function () {
       if (app.splashLayer.classList.contains('is-leaving')) return;
+      app.splashLayer.querySelectorAll('.loop').forEach(function (video) { video.pause(); });
       app.splashLayer.classList.add('is-leaving');
       window.setTimeout(function () { app.splashLayer.setAttribute('aria-hidden', 'true'); }, 320);
       renderRoute('forward', true);

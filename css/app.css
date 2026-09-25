@@ -102,6 +102,7 @@ a:focus-visible {
 
 .role-switch {
   position: relative;
+  z-index: 35;
   display: flex;
   flex: 0 0 auto;
   margin: 0 20px 12px;
@@ -1464,8 +1465,9 @@ a:focus-visible {
   min-height: 88px;
   flex: 1;
   overflow: hidden;
-  border-radius: 8px;
-  background: var(--canvas);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .video-slot .loop {
@@ -1473,7 +1475,7 @@ a:focus-visible {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   mix-blend-mode: multiply;
   opacity: 1;
   transition: opacity 260ms var(--ease-exit);
@@ -1497,9 +1499,18 @@ a:focus-visible {
   opacity: 1;
 }
 
-.video-fallback .mascot-svg {
+.video-fallback img {
   width: 82px;
   height: 82px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.empty-state .video-slot {
+  width: 148px;
+  height: 148px;
+  min-height: 148px;
+  flex: 0 0 148px;
 }
 
 .timeline {
@@ -1575,7 +1586,7 @@ a:focus-visible {
   height: 40px;
   border-radius: 50%;
   background: var(--white);
-  color: var(--patient);
+  color: var(--patient-text);
 }
 
 .next-card-icon svg {
@@ -1718,7 +1729,7 @@ a:focus-visible {
   height: 44px;
   border-radius: 50%;
   background: var(--family-soft);
-  color: var(--family);
+  color: var(--family-text);
 }
 
 .contact-icon {
@@ -1850,7 +1861,6 @@ a:focus-visible {
   gap: 12px;
   padding: 32px;
   text-align: center;
-  animation: splash-in 500ms var(--ease-enter) both;
 }
 
 .splash-mascot {
@@ -1859,12 +1869,17 @@ a:focus-visible {
   justify-content: center;
   width: 190px;
   height: 190px;
-  border-radius: 50%;
-  background: var(--stone);
-  animation: mascot-wave 1.8s var(--ease-enter) infinite;
+  border-radius: 0;
+  background: transparent;
 }
 
-.splash-mascot .mascot-svg {
+.splash-mascot .video-slot {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.splash-mascot .video-fallback img {
   width: 144px;
   height: 144px;
 }
@@ -1877,6 +1892,7 @@ a:focus-visible {
   font-weight: 500;
   line-height: 48px;
   letter-spacing: -0.02em;
+  animation: card-in 500ms var(--ease-enter) both;
 }
 
 .splash-tagline {
@@ -1885,6 +1901,7 @@ a:focus-visible {
   color: var(--body);
   font-size: var(--text-small);
   line-height: 23px;
+  animation: card-in 500ms var(--ease-enter) 80ms both;
 }
 
 .splash-skip {
@@ -2000,41 +2017,39 @@ a:focus-visible {
 .view.is-active .patient-card,
 .view.is-active .task-card,
 .view.is-active .timeline-item,
-.view.is-active .onboarding-card,
 .view.is-active .visit-card,
 .view.is-active .contact-card,
-.view.is-active .faq-item {
+.view.is-active .faq-item,
+.view.is-active .onboarding-card-copy {
   animation: card-in var(--duration-enter) var(--ease-enter) both;
 }
 
 .view.is-active .patient-card:nth-child(1),
 .view.is-active .task-card:nth-child(1),
 .view.is-active .timeline-item:nth-child(1),
-.view.is-active .onboarding-card:nth-child(1),
 .view.is-active .visit-card:nth-child(1),
 .view.is-active .contact-card:nth-child(1),
 .view.is-active .faq-item:nth-child(1) { animation-delay: 40ms; }
 .view.is-active .patient-card:nth-child(2),
 .view.is-active .task-card:nth-child(2),
 .view.is-active .timeline-item:nth-child(2),
-.view.is-active .onboarding-card:nth-child(2),
 .view.is-active .visit-card:nth-child(2),
 .view.is-active .contact-card:nth-child(2),
 .view.is-active .faq-item:nth-child(2) { animation-delay: 80ms; }
 .view.is-active .patient-card:nth-child(3),
 .view.is-active .task-card:nth-child(3),
 .view.is-active .timeline-item:nth-child(3),
-.view.is-active .onboarding-card:nth-child(3),
 .view.is-active .visit-card:nth-child(3),
 .view.is-active .contact-card:nth-child(3),
 .view.is-active .faq-item:nth-child(3) { animation-delay: 120ms; }
 .view.is-active .patient-card:nth-child(4),
 .view.is-active .task-card:nth-child(4),
 .view.is-active .timeline-item:nth-child(4),
-.view.is-active .onboarding-card:nth-child(4),
 .view.is-active .visit-card:nth-child(4),
 .view.is-active .contact-card:nth-child(4),
 .view.is-active .faq-item:nth-child(4) { animation-delay: 160ms; }
+.view.is-active .onboarding-card:nth-child(1) .onboarding-card-copy { animation-delay: 40ms; }
+.view.is-active .onboarding-card:nth-child(2) .onboarding-card-copy { animation-delay: 80ms; }
 
 @keyframes check-draw {
   from { stroke-dashoffset: 32; }
@@ -2044,11 +2059,6 @@ a:focus-visible {
 @keyframes mascot-float {
   from { transform: translate3d(0, 0, 0) rotate(-2deg); }
   to { transform: translate3d(0, -9px, 0) rotate(2deg); }
-}
-
-@keyframes mascot-wave {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-  50% { transform: translate3d(0, -5px, 0) rotate(-3deg); }
 }
 
 @keyframes mascot-pop {
@@ -2066,11 +2076,6 @@ a:focus-visible {
 @keyframes mic-pulse {
   0%, 100% { transform: scale(0.75); opacity: .6; }
   50% { transform: scale(1.1); opacity: 1; }
-}
-
-@keyframes splash-in {
-  from { opacity: 0; transform: translate3d(0, 14px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes number-pop {
