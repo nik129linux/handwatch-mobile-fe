@@ -71,8 +71,9 @@ function test(name, fn) {
 
 // --- model picking ---
 
-test('prefers a model without remote_host', () => {
-  assert.strictEqual(ai.pickModel(LOCAL_TAGS), 'huihui_ai/qwen3.5-abliterated:4b');
+test('never picks a non-gemma local model (it can freeze the PC)', () => {
+  assert.strictEqual(ai.pickModel(LOCAL_TAGS), 'gemma4:31b-cloud');
+  assert.strictEqual(ai.pickModel([{ name: 'huihui_ai/qwen3.5-abliterated:4b' }]), null);
 });
 
 test('cloud-tagged-only list is valid, first model is used', () => {
@@ -111,7 +112,7 @@ test('12h output time is grounded in 24h source time', () => {
 test('ollama up with valid draft returns ollama source', async () => {
   const out = await srv.handleHandover(EVENTS, localClient({ tags: LOCAL_TAGS, generate: GOOD_DRAFT }));
   assert.strictEqual(out.source, 'ollama');
-  assert.strictEqual(out.model, 'huihui_ai/qwen3.5-abliterated:4b');
+  assert.strictEqual(out.model, 'gemma4:31b-cloud');
   assert.strictEqual(out.s, GOOD_DRAFT.s);
 });
 
@@ -288,7 +289,7 @@ test('http: health, handover dryRun, ask flow, questions resolve', async () => {
   try {
     const health = await get(port, '/api/health');
     assert.strictEqual(health.body.ok, true);
-    assert.strictEqual(health.body.ollama.model, 'huihui_ai/qwen3.5-abliterated:4b');
+    assert.strictEqual(health.body.ollama.model, 'gemma4:31b-cloud');
 
     const dry = await post(port, '/api/handover', { events: EVENTS, dryRun: true });
     assert.ok(dry.body.payload && dry.body.payload.counts.total === 5);

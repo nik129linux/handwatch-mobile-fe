@@ -47,14 +47,14 @@ async function listModels(client) {
   return data.models;
 }
 
-// Prefer a model without remote_host (fully local). Cloud-tagged models
-// (e.g. gemma4:31b-cloud, which carries remote_host) ARE valid: when they
-// are the only ones installed, the first model is used.
+// Model policy: OLLAMA_MODEL env wins, otherwise a gemma model (cloud-tagged
+// gemma4:31b-cloud is fine). Never auto-pick another local model: a big local
+// one can freeze the PC. No gemma = null = rules.
 function pickModel(models) {
-  if (!Array.isArray(models) || models.length === 0) return null;
-  const local = models.find((m) => m && !m.remote_host);
-  const chosen = local || models[0];
-  return chosen && chosen.name ? chosen.name : null;
+  if (!Array.isArray(models)) return null;
+  const want = process.env.OLLAMA_MODEL;
+  const hit = models.find((m) => m && m.name && (want ? m.name === want : /^gemma/i.test(m.name)));
+  return hit ? hit.name : null;
 }
 
 async function activeModel(client) {
