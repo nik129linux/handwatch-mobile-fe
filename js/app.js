@@ -10,6 +10,7 @@
     roleTabs: Array.prototype.slice.call(document.querySelectorAll('.role-tab')),
     splashLayer: $('splashLayer'),
     registrationLayer: $('registrationLayer'),
+    aiLayer: $('aiLayer'),
     celebrationLayer: $('celebrationLayer')
   };
 
@@ -224,7 +225,8 @@
     return '<div class="home-intro"><p class="eyebrow">Hospital Central · Piso 3</p><h1 class="view-title">Mi turno</h1><p class="view-copy">Buenos días, Elena. Todo lo importante, a la vista.</p></div>' +
       '<div class="shift-stats" aria-label="Resumen del turno"><div class="shift-stat"><strong>3</strong><span>Pacientes</span></div><div class="shift-stat"><strong>' + pending + '</strong><span>Pendientes</span></div><div class="shift-stat"><strong>1:00</strong><span>Próxima ronda</span></div></div>' +
       '<div class="section-heading"><h2 class="section-label">Pacientes asignados</h2><span class="badge badge-critical">1 crítico</span></div>' +
-      '<div class="patient-list">' + cards + '</div>';
+      '<div class="patient-list">' + cards + '</div>' +
+      '<div class="ai-card"><strong>Nota de entrega (SBAR)</strong><span>Prepara un borrador del turno para entregar. Puedes editarlo antes de copiarlo.</span><span class="source-badge" data-handover-home-badge>Plantilla</span><div class="ai-actions"><button type="button" class="secondary-button" data-handover-open>Preparar nota</button></div></div>';
   }
 
   function taskCard(task) {
@@ -256,7 +258,8 @@
     return '<div class="view-header"><div class="view-header-copy"><p class="view-subtitle">Turno de Elena</p><h1 class="view-title small-title">Pendientes</h1></div></div>' +
       '<div class="pending-summary"><div class="pending-summary-copy"><strong>Lo que falta</strong><span>Confirma cada evento con un toque.</span></div><span class="pending-count" data-pending-count>' + pending.length + '</span></div>' +
       '<div class="section-heading"><h2 class="section-label">En este momento</h2><span class="section-meta">Orden por hora</span></div>' +
-      '<div class="task-list">' + pending.map(taskCard).join('') + '</div>';
+      '<div class="task-list">' + pending.map(taskCard).join('') + '</div>' +
+      '<div class="ai-card"><strong>Preguntas de la familia</strong><span>Si una familia dejó una duda desde su vista, aparece aquí.</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>Revisar preguntas</button></div><div data-nurse-questions></div></div>';
   }
 
   function detailRow(label, value, expanded) {
@@ -306,7 +309,8 @@
     return '<div class="patient-intro"><p class="eyebrow">' + escapeHtml(patient.name) + ' · ' + escapeHtml(patient.room) + '</p><h1 class="view-title">Qué pasa</h1><p class="view-copy">Un resumen sencillo para acompañar' + objectPronoun + ' con tranquilidad.</p></div>' +
       '<div class="family-summary"><strong>El equipo está con ' + escapeHtml(patient.pronoun) + '</strong><span>El tratamiento de la mañana va avanzando con normalidad.</span></div>' +
       '<div class="section-heading"><h2 class="section-label">Hoy</h2><span class="section-meta">Sin datos clínicos</span></div>' + timeline(familyTimeline(patient)) +
-      '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de <span class="time-nowrap">3:00 p. m.</span> a <span class="time-nowrap">5:00 p. m.</span></span></span></div>';
+      '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de <span class="time-nowrap">3:00 p. m.</span> a <span class="time-nowrap">5:00 p. m.</span></span></span></div>' +
+      '<div class="ai-card"><strong>¿Tiene una duda?</strong><span>Pregunte con tranquilidad. Le respondemos solo con lo que se ve del turno.</span><div class="ask-row"><input type="text" class="ask-input" data-ask-input maxlength="300" placeholder="¿Cómo pasó la noche?" aria-label="Escriba su pregunta"><button type="button" class="primary-button" data-ask-send>Preguntar</button></div><div class="ask-answer is-empty" data-ask-answer aria-live="polite"></div><span class="source-badge" data-ask-badge>Plantilla</span></div>';
   }
 
   function renderContact() {
@@ -457,6 +461,7 @@
       tab.setAttribute('aria-selected', String(active));
     });
     if (state.sheetOpen) closeRegistrationSheet(false);
+    closeAiSheet();
     app.screen.innerHTML = '';
     renderBottomNav();
     renderRoute(nextIndex >= currentIndex ? 'forward' : 'back', true);
@@ -663,6 +668,49 @@
   }
 
   function handleScreenClick(event) {
+    var handoverOpen = event.target.closest('[data-handover-open]');
+    if (handoverOpen) {
+      openHandoverSheet();
+      return;
+    }
+
+    var askSend = event.target.closest('[data-ask-send]');
+    if (askSend) {
+      sendAsk();
+      return;
+    }
+
+    var consentYes = event.target.closest('[data-consent-yes]');
+    if (consentYes) {
+      acceptConsent(consentYes.getAttribute('data-consent-yes'));
+      return;
+    }
+
+    var consentNo = event.target.closest('[data-consent-no]');
+    if (consentNo) {
+      declineConsent(consentNo.getAttribute('data-consent-no'));
+      return;
+    }
+
+    var questionsLoad = event.target.closest('[data-questions-load]');
+    if (questionsLoad) {
+      var slot = app.screen.querySelector('[data-nurse-questions]');
+      if (slot) loadNurseQuestions(slot);
+      return;
+    }
+
+    var questionDone = event.target.closest('[data-question-done]');
+    if (questionDone) {
+      var id = Number(questionDone.getAttribute('data-question-done'));
+      aiRequest('/api/questions/resolve', { id: id }).then(function () {
+        var card = questionDone.closest('[data-question-card]');
+        if (card) card.remove();
+      }, function () {
+        // offline: leave the item visible
+      });
+      return;
+    }
+
     var confirm = event.target.closest('[data-confirm]');
     if (confirm) {
       event.preventDefault();
@@ -810,6 +858,374 @@
     }
   }
 
+  // ---- Local AI bridge: handover (SBAR) + family Q&A ----
+  // server/server.js owns the rules, grounding and guardrails. The helpers
+  // below mirror them so the prototype still works from file:// with no
+  // server. Every fetch runs ONLY on an explicit tap, with a 3s timeout,
+  // and falls back silently to the on-device template. A badge always
+  // shows which source produced the text: "Plantilla" or "IA local".
+  var AI_BASE = 'http://127.0.0.1:8787';
+  var AI_TIMEOUT_MS = 3000;
+  var HANDOVER_MAX = 200;
+  var ASK_MAX = 220;
+  var SAFE_ANSWER_OFFLINE = 'No puedo responder eso con lo que se ve del turno. Anótelo para preguntarlo a la enfermera.';
+  var REFUSAL_RE = /diagn[oó]st|pron[oó]st|c[áa]ncer|tumor|grave|morir|muerte|curar|se va a|cu[áa]nto (tiempo|falta|vive)|dosis|cu[áa]ntos?\s*(mg|ml|gramos)|qu[ée] medicamento|qu[ée] pastilla|qu[ée] droga|debo darle|le (doy|damos|puedo dar)|recomienda|aconseja|deber[íi]a tomar|resultados? (de |del )?(examen|sangre|laboratorio)|alta m[ée]dica|cu[áa]ndo sale|anestesia|cirug[íi]a|presi[óo]n arterial|fiebre|az[úu]car/i;
+
+  var aiConsent = null;
+  var aiAskPending = null;
+  try {
+    aiConsent = window.localStorage.getItem('acompana-ai-consent');
+  } catch (consentError) {
+    aiConsent = null;
+  }
+
+  function saveConsent(value) {
+    aiConsent = value;
+    try {
+      window.localStorage.setItem('acompana-ai-consent', value);
+    } catch (saveError) {
+      // storage may be unavailable; the in-memory choice still applies
+    }
+  }
+
+  function aiRequest(path, body) {
+    var controller;
+    try {
+      controller = new AbortController();
+    } catch (abortError) {
+      return Promise.reject(new Error('no abort'));
+    }
+    var timer = window.setTimeout(function () {
+      try {
+        controller.abort();
+      } catch (timerError) {
+        // ignore
+      }
+    }, AI_TIMEOUT_MS);
+    var options = { signal: controller.signal };
+    if (body === undefined) {
+      options.method = 'GET';
+    } else {
+      options.method = 'POST';
+      options.headers = { 'Content-Type': 'application/json' };
+      options.body = JSON.stringify(body);
+    }
+    return fetch(AI_BASE + path, options).then(function (response) {
+      window.clearTimeout(timer);
+      if (!response.ok) throw new Error('bad status');
+      return response.json();
+    }, function (error) {
+      window.clearTimeout(timer);
+      throw error;
+    });
+  }
+
+  // Day events without names, rooms or titles: only aggregates and
+  // clinical tokens ever leave this device toward the model.
+  function dayEvents() {
+    return [
+      { time: '08:00', text: 'Cambio postural de la mañana hecho', done: true },
+      { time: '11:05', text: 'Enoxaparina 40mg SC, vía abdominal aplicada', done: isConfirmed('medication') },
+      { time: '11:20', text: 'Cambio postural previsto', done: isConfirmed('position') },
+      { time: '13:00', text: 'Ronda programada, control de signos', done: isConfirmed('round') },
+      { time: '11:00', text: 'PA 90/55, taquicardia 112, alerta protocolo hipotensión', done: false }
+    ];
+  }
+
+  function familyFacts() {
+    return [
+      'Tratamiento de la mañana cumplido.',
+      'El equipo está con ella, sin novedad que reportar.',
+      'Horario de visita: 15:00.',
+      'La enfermera vuelve a la 1:00 p. m.'
+    ];
+  }
+
+  function clipAi(text, max) {
+    var clean = String(text || '').replace(/\s+/g, ' ').trim();
+    if (clean.length <= max) return clean;
+    return clean.slice(0, max - 1).trimEnd() + '…';
+  }
+
+  function handoverRulesLocal(events) {
+    var total = events.length;
+    var done = events.filter(function (e) { return e.done; }).length;
+    var pending = total - done;
+    var pendTimes = events.filter(function (e) { return !e.done; }).map(function (e) { return e.time || 'sin hora'; }).join(', ');
+    var vitals = events.find(function (e) { return /\bPA\b|taquicardia|hipotensi|alerta|protocolo/i.test(e.text); }) ||
+      events.find(function (e) { return /signos|vitales/i.test(e.text); });
+    var med = events.find(function (e) { return e.done && /mg\b|ml\b|medicamento|enoxaparina|aplic/i.test(e.text); });
+    var postureDone = events.some(function (e) { return e.done && /postural|cambio de posici/i.test(e.text); });
+    var round = events.find(function (e) { return /ronda/i.test(e.text); });
+    var situation = total === 0
+      ? 'Turno sin eventos registrados todavía.'
+      : 'Turno: ' + done + ' de ' + total + ' eventos listos.' +
+        (pending > 0 ? ' Faltan ' + pending + ': ' + pendTimes + '.' : ' Nada pendiente.');
+    var background = med
+      ? 'Aplicado: ' + med.text + ' (' + (med.time || 'turno actual') + ').' + (postureDone ? ' Cambio postural hecho.' : '')
+      : 'Sin medicación aplicada en el turno.' + (postureDone ? ' Cambio postural hecho.' : '');
+    var assessment = vitals
+      ? 'En revisión: ' + vitals.text + '.' + (pending > 0 ? ' Quedan ' + pending + ' por confirmar.' : '')
+      : 'Sin alertas en lo registrado.' + (pending > 0 ? ' Quedan ' + pending + ' por confirmar.' : '');
+    var recommendation = pending > 0
+      ? (round
+        ? 'Completa lo pendiente y revalora signos en la ronda de las ' + (round.time || 'próxima hora') + '.'
+        : 'Completa lo pendiente y deja nota en el turno.')
+      : 'Turno al día. Deja nota breve para el siguiente turno.';
+    return {
+      s: clipAi(situation, HANDOVER_MAX),
+      b: clipAi(background, HANDOVER_MAX),
+      a: clipAi(assessment, HANDOVER_MAX),
+      r: clipAi(recommendation, HANDOVER_MAX)
+    };
+  }
+
+  // Keyword answers mirror the family column of the translation table in
+  // ref/content-spec.md. Returns null when no keyword matches.
+  function askRulesLocal(question, facts) {
+    var q = String(question || '').toLowerCase();
+    var pick = function (pattern) {
+      return facts.find(function (fact) { return pattern.test(fact); });
+    };
+    if (/visit|horario|cu[áa]ndo (puedo|puede|vamos|ir|venir|ver|entrar)|verlo|verla|venir|entrar|hora de/.test(q)) {
+      return pick(/visita/i) || null;
+    }
+    if (/ronda|enfermera|vuelve|vuelven|qui[ée]n (la|lo) cuida|cuida/.test(q)) {
+      return pick(/ronda|enfermera|vuelve/i) || null;
+    }
+    if (/noche|durmi|madrugada|c[óo]mo pas|c[óo]mo est|c[óo]mo sigue|c[óo]mo amaneci|descans|tranquil/.test(q)) {
+      return pick(/tranquil|sin novedad|normalidad|equipo/i) || null;
+    }
+    if (/medicamento|medicina|tratamiento|pastilla|inyecci|suero|remedio/.test(q)) {
+      return pick(/tratamiento|medicamento|cumplido/i) || null;
+    }
+    return null;
+  }
+
+  function askLocal(question) {
+    if (REFUSAL_RE.test(String(question || ''))) return { answer: SAFE_ANSWER_OFFLINE };
+    var direct = askRulesLocal(question, familyFacts());
+    if (direct) return { answer: clipAi(direct, ASK_MAX) };
+    return { answer: SAFE_ANSWER_OFFLINE };
+  }
+
+  function setBadge(element, source, model) {
+    if (!element) return;
+    if (source === 'ollama') {
+      element.textContent = 'IA local · ' + model;
+      element.classList.add('is-live');
+    } else {
+      element.textContent = 'Plantilla';
+      element.classList.remove('is-live');
+    }
+  }
+
+  function consentBox(kind, payload) {
+    return '<div class="consent-box"><strong>Antes de usar la IA local</strong>' +
+      '<span>Esto es lo único que saldría de este equipo. Sin nombres ni datos personales. ¿Lo aceptas?</span>' +
+      '<pre>' + escapeHtml(JSON.stringify(payload, null, 1)) + '</pre>' +
+      '<div class="consent-row"><button type="button" class="primary-button" data-consent-yes="' + kind + '">Aceptar</button>' +
+      '<button type="button" class="secondary-button" data-consent-no="' + kind + '">Ahora no</button></div></div>';
+  }
+
+  function openHandoverSheet() {
+    app.aiLayer.innerHTML = '<div class="ai-backdrop" data-ai-close></div>' +
+      '<section class="ai-sheet" role="dialog" aria-modal="true" aria-labelledby="ai-sheet-title">' +
+      '<div class="sheet-handle" aria-hidden="true"></div>' +
+      '<div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Entrega de turno</p>' +
+      '<h2 id="ai-sheet-title" class="sheet-title">Nota de entrega (SBAR)</h2></div>' +
+      '<button type="button" class="icon-button" data-ai-close aria-label="Cerrar nota">×</button></div>' +
+      '<p class="sheet-copy">Revisa cada campo. Puedes editarlo antes de copiarlo.</p>' +
+      '<div data-consent-slot></div>' +
+      '<label class="handover-field">Situación<textarea data-handover-s rows="2" maxlength="200"></textarea></label>' +
+      '<label class="handover-field">Antecedentes<textarea data-handover-b rows="2" maxlength="200"></textarea></label>' +
+      '<label class="handover-field">Evaluación<textarea data-handover-a rows="2" maxlength="200"></textarea></label>' +
+      '<label class="handover-field">Recomendación<textarea data-handover-r rows="2" maxlength="200"></textarea></label>' +
+      '<div class="ai-actions"><span class="source-badge" data-handover-badge>Plantilla</span>' +
+      '<button type="button" class="secondary-button" data-handover-generate>Generar borrador</button>' +
+      '<button type="button" class="primary-button" data-handover-copy>Copiar nota</button></div>' +
+      '<p class="tray-feedback ai-feedback" data-ai-feedback aria-live="polite"></p></section>';
+    app.aiLayer.classList.add('is-open');
+    app.aiLayer.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeAiSheet() {
+    if (!app.aiLayer.classList.contains('is-open')) return;
+    app.aiLayer.classList.remove('is-open');
+    app.aiLayer.setAttribute('aria-hidden', 'true');
+    window.setTimeout(function () {
+      if (!app.aiLayer.classList.contains('is-open')) app.aiLayer.innerHTML = '';
+    }, 420);
+  }
+
+  function fillHandover(draft, source, model) {
+    var set = function (key, value) {
+      var field = app.aiLayer.querySelector('[data-handover-' + key + ']');
+      if (field) field.value = value || '';
+    };
+    set('s', draft.s);
+    set('b', draft.b);
+    set('a', draft.a);
+    set('r', draft.r);
+    setBadge(app.aiLayer.querySelector('[data-handover-badge]'), source, model);
+    setBadge(app.screen.querySelector('[data-handover-home-badge]'), source, model);
+  }
+
+  function generateHandover() {
+    if (aiConsent === 'no') {
+      fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
+      return;
+    }
+    if (aiConsent === 'yes') {
+      handoverViaServer();
+      return;
+    }
+    aiRequest('/api/handover', { events: dayEvents(), dryRun: true }).then(function (data) {
+      var slot = app.aiLayer.querySelector('[data-consent-slot]');
+      if (slot && data && data.payload) slot.innerHTML = consentBox('handover', data.payload);
+    }, function () {
+      fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
+    });
+  }
+
+  function handoverViaServer() {
+    aiRequest('/api/handover', { events: dayEvents() }).then(function (data) {
+      fillHandover({ s: data.s, b: data.b, a: data.a, r: data.r }, data.source, data.model);
+    }, function () {
+      fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
+    });
+  }
+
+  function copyHandover() {
+    var get = function (key) {
+      var field = app.aiLayer.querySelector('[data-handover-' + key + ']');
+      return field ? field.value.trim() : '';
+    };
+    var note = 'Situación: ' + get('s') + '\nAntecedentes: ' + get('b') + '\nEvaluación: ' + get('a') + '\nRecomendación: ' + get('r');
+    var feedback = app.aiLayer.querySelector('[data-ai-feedback]');
+    var done = function () {
+      if (feedback) feedback.textContent = 'Nota copiada. Puedes pegarla donde la necesites.';
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(note).then(done, function () {
+        if (feedback) feedback.textContent = 'No se pudo copiar. Selecciona el texto a mano.';
+      });
+    } else if (feedback) {
+      feedback.textContent = 'No se pudo copiar. Selecciona el texto a mano.';
+    }
+  }
+
+  function showAsk(box, text, source, model) {
+    box.classList.remove('is-empty');
+    box.textContent = text;
+    setBadge(app.screen.querySelector('[data-ask-badge]'), source, model);
+  }
+
+  function askViaServer(question, box) {
+    box.classList.remove('is-empty');
+    box.textContent = 'Preguntando…';
+    aiRequest('/api/ask', { question: question, facts: familyFacts() }).then(function (data) {
+      showAsk(box, data.answer, data.source, data.model);
+    }, function () {
+      showAsk(box, askLocal(question).answer, 'rules', null);
+    });
+  }
+
+  function sendAsk() {
+    var input = app.screen.querySelector('[data-ask-input]');
+    var box = app.screen.querySelector('[data-ask-answer]');
+    if (!input || !box) return;
+    var question = input.value.trim();
+    if (!question) {
+      showAsk(box, 'Escriba su pregunta primero.', 'rules', null);
+      return;
+    }
+    if (aiConsent === 'no') {
+      showAsk(box, askLocal(question).answer, 'rules', null);
+      return;
+    }
+    if (aiConsent === 'yes') {
+      askViaServer(question, box);
+      return;
+    }
+    aiRequest('/api/ask', { question: question, facts: familyFacts(), dryRun: true }).then(function (data) {
+      aiAskPending = question;
+      box.classList.remove('is-empty');
+      box.innerHTML = '';
+      var wrap = document.createElement('div');
+      wrap.innerHTML = consentBox('ask', data && data.payload);
+      box.appendChild(wrap);
+    }, function () {
+      showAsk(box, askLocal(question).answer, 'rules', null);
+    });
+  }
+
+  function acceptConsent(kind) {
+    saveConsent('yes');
+    if (kind === 'handover') {
+      var slot = app.aiLayer.querySelector('[data-consent-slot]');
+      if (slot) slot.innerHTML = '';
+      handoverViaServer();
+      return;
+    }
+    var box = app.screen.querySelector('[data-ask-answer]');
+    if (box && aiAskPending) askViaServer(aiAskPending, box);
+    aiAskPending = null;
+  }
+
+  function declineConsent(kind) {
+    saveConsent('no');
+    if (kind === 'handover') {
+      var slot = app.aiLayer.querySelector('[data-consent-slot]');
+      if (slot) slot.innerHTML = '';
+      fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
+      return;
+    }
+    var box = app.screen.querySelector('[data-ask-answer]');
+    if (box && aiAskPending) showAsk(box, askLocal(aiAskPending).answer, 'rules', null);
+    aiAskPending = null;
+  }
+
+  function loadNurseQuestions(slot) {
+    slot.innerHTML = '<p class="view-copy muted-copy">Buscando preguntas…</p>';
+    aiRequest('/api/questions').then(function (data) {
+      var items = data && data.items ? data.items : [];
+      if (!items.length) {
+        slot.innerHTML = '<p class="view-copy muted-copy">Sin preguntas por ahora.</p>';
+        return;
+      }
+      slot.innerHTML = items.map(function (item) {
+        return '<article class="nurse-question" data-question-card="' + escapeHtml(item.id) + '">' +
+          '<span>' + escapeHtml(item.question) + '</span><time>' + escapeHtml(item.at) + '</time>' +
+          '<div class="ai-actions"><button type="button" class="secondary-button" data-question-done="' + escapeHtml(item.id) + '">Marcar lista</button></div></article>';
+      }).join('');
+    }, function () {
+      slot.innerHTML = '<p class="view-copy muted-copy">Sin conexión al servidor. Sigue con la plantilla.</p>';
+    });
+  }
+
+  function handleAiClick(event) {
+    if (event.target.closest('[data-ai-close]')) {
+      closeAiSheet();
+      return;
+    }
+    if (event.target.closest('[data-handover-generate]')) {
+      generateHandover();
+      return;
+    }
+    if (event.target.closest('[data-handover-copy]')) {
+      copyHandover();
+      return;
+    }
+    var yes = event.target.closest('[data-consent-yes]');
+    if (yes) {
+      acceptConsent(yes.getAttribute('data-consent-yes'));
+      return;
+    }
+    var no = event.target.closest('[data-consent-no]');
+    if (no) declineConsent(no.getAttribute('data-consent-no'));
+  }
+
   function initClock() {
     var time = document.querySelector('.status-time');
     if (!time) return;
@@ -836,13 +1252,20 @@
     app.screen.addEventListener('click', handleScreenClick);
     app.bottomNav.addEventListener('click', handleNavClick);
     app.registrationLayer.addEventListener('click', handleRegistrationClick);
+    app.aiLayer.addEventListener('click', handleAiClick);
     app.roleTabs.forEach(function (tab) { tab.addEventListener('click', handleRoleClick); });
     app.celebrationLayer.addEventListener('click', function (event) {
       if (event.target.closest('[data-close-celebration]')) hideCompletion();
     });
     document.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' && event.target && event.target.matches && event.target.matches('[data-ask-input]')) {
+        event.preventDefault();
+        sendAsk();
+        return;
+      }
       if (event.key !== 'Escape') return;
-      if (state.sheetOpen) closeRegistrationSheet();
+      if (app.aiLayer.classList.contains('is-open')) closeAiSheet();
+      else if (state.sheetOpen) closeRegistrationSheet();
       else if (state.detailPatient) closePatientDetail();
       else if (app.celebrationLayer.classList.contains('is-visible')) hideCompletion();
     });
