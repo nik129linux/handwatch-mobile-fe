@@ -96,7 +96,7 @@ a:focus-visible {
 
 .status-icons {
   color: var(--body);
-  font-size: 11px;
+  font-size: var(--text-caption);
   letter-spacing: 0.02em;
 }
 
@@ -125,9 +125,9 @@ a:focus-visible {
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
   transform: translate3d(calc(var(--role-index, 0) * 100%), 0, 0);
-  transition: transform 360ms var(--ease-enter),
-    background-color 360ms var(--ease-enter),
-    border-color 360ms var(--ease-enter);
+  transition: transform var(--duration-enter) var(--ease-enter),
+    background-color var(--duration-enter) var(--ease-enter),
+    border-color var(--duration-enter) var(--ease-enter);
 }
 
 .role-tab {
@@ -327,13 +327,14 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border: 1px solid var(--stone-border);
   border-radius: 50%;
   background: var(--white);
   color: var(--ink);
   cursor: pointer;
+  font-size: 22px;
   transition: transform var(--duration-press) var(--ease-press),
     background-color var(--duration-enter) var(--ease-enter),
     color var(--duration-enter) var(--ease-enter),
@@ -428,7 +429,7 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: 56px;
   color: var(--accent);
   cursor: pointer;
   font-size: var(--text-small);
@@ -445,7 +446,7 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: 56px;
   max-width: 100%;
   padding: 10px 18px;
   border-radius: 32px;
@@ -557,11 +558,11 @@ a:focus-visible {
   margin-bottom: -5px;
   opacity: 0;
   transform: translate3d(20px, 0, 0) scale(0.96);
-  transition: max-height 260ms var(--ease-exit),
-    min-height 260ms var(--ease-exit),
-    margin 260ms var(--ease-exit),
-    opacity 220ms var(--ease-exit),
-    transform 260ms var(--ease-exit);
+  transition: max-height var(--duration-exit) var(--ease-exit),
+    min-height var(--duration-exit) var(--ease-exit),
+    margin var(--duration-exit) var(--ease-exit),
+    opacity var(--duration-exit) var(--ease-exit),
+    transform var(--duration-exit) var(--ease-exit);
 }
 
 .patient-card-main {
@@ -680,13 +681,13 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   min-width: 66px;
-  min-height: 36px;
-  padding: 6px 10px;
+  min-height: 56px;
+  padding: 6px 14px;
   border-radius: var(--radius-cta);
   background: var(--ink);
   color: var(--white);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-weight: 600;
   line-height: 16px;
   transition: transform var(--duration-press) var(--ease-press),
@@ -788,7 +789,7 @@ a:focus-visible {
   font-size: var(--text-small);
   line-height: 23px;
   user-select: none;
-  transition: filter 320ms var(--ease-enter);
+  transition: filter var(--duration-enter) var(--ease-enter);
 }
 
 .clinical-value.is-revealed {
@@ -800,7 +801,7 @@ a:focus-visible {
   align-items: center;
   align-self: flex-start;
   gap: 6px;
-  min-height: 40px;
+  min-height: 56px;
   padding: 0;
   background: transparent;
   color: var(--accent);
@@ -821,7 +822,7 @@ a:focus-visible {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.8;
-  transition: transform 300ms var(--ease-enter);
+  transition: transform var(--duration-enter) var(--ease-enter);
 }
 
 .reveal-button.is-revealed svg {
@@ -886,7 +887,7 @@ a:focus-visible {
 .detail-chevron {
   display: inline-flex;
   color: var(--muted);
-  transition: transform 300ms var(--ease-enter), color 300ms var(--ease-enter);
+  transition: transform var(--duration-enter) var(--ease-enter), color var(--duration-enter) var(--ease-enter);
 }
 
 .detail-chevron.is-expanded {
@@ -954,11 +955,11 @@ a:focus-visible {
   background: var(--white);
   box-shadow: inset 0 0 0 1px var(--stone);
   transition: transform var(--duration-press) var(--ease-press),
-    max-height 260ms var(--ease-exit),
-    min-height 260ms var(--ease-exit),
-    margin 260ms var(--ease-exit),
-    padding 260ms var(--ease-exit),
-    opacity 220ms var(--ease-exit);
+    max-height var(--duration-exit) var(--ease-exit),
+    min-height var(--duration-exit) var(--ease-exit),
+    margin var(--duration-exit) var(--ease-exit),
+    padding var(--duration-exit) var(--ease-exit),
+    opacity var(--duration-exit) var(--ease-exit);
 }
 
 .task-card:hover {
@@ -1042,8 +1043,8 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: var(--ink);
   color: var(--white);
@@ -1073,12 +1074,14 @@ a:focus-visible {
 
 .confirm-mark path {
   stroke-dasharray: 32;
-  stroke-dashoffset: 32;
+  stroke-dashoffset: 0;
+  opacity: 0.35;
 }
 
 .task-card.is-confirming .confirm-mark path,
 .patient-card.is-confirming .confirm-mark path {
-  animation: check-draw 360ms var(--ease-enter) forwards;
+  animation: check-draw var(--duration-enter) var(--ease-enter) forwards;
+  opacity: 1;
 }
 
 .confirm-label {
@@ -1112,18 +1115,6 @@ a:focus-visible {
   gap: 12px;
   padding: 32px 20px 44px;
   text-align: center;
-}
-
-.empty-mascot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 148px;
-  height: 148px;
-  margin-bottom: 2px;
-  border-radius: 50%;
-  background: var(--stone);
-  animation: mascot-float 3.6s var(--ease-enter) infinite alternate;
 }
 
 .empty-state h2 {
@@ -1164,7 +1155,7 @@ a:focus-visible {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.4;
-  animation: check-draw 420ms var(--ease-enter) forwards;
+  animation: check-draw var(--duration-enter) var(--ease-enter) forwards;
 }
 
 .confetti-layer {
@@ -1184,7 +1175,7 @@ a:focus-visible {
   background: var(--sky);
   opacity: 0;
   transform: translate3d(0, 0, 0) rotate(0deg);
-  animation: confetti-fall 1200ms var(--ease-exit) forwards;
+  animation: confetti-fall var(--duration-burst) var(--ease-exit) forwards;
   animation-delay: var(--confetti-delay);
 }
 
@@ -1223,9 +1214,9 @@ a:focus-visible {
 .sheet-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(18, 18, 18, .32);
+  background: var(--veil-ink);
   opacity: 0;
-  transition: opacity 260ms var(--ease-exit);
+  transition: opacity var(--duration-exit) var(--ease-exit);
 }
 
 .registration-layer.is-open .sheet-backdrop {
@@ -1244,7 +1235,7 @@ a:focus-visible {
   background: var(--white);
   color: var(--ink);
   transform: translate3d(0, calc(100% + 20px), 0);
-  transition: transform 380ms var(--ease-enter);
+  transition: transform var(--duration-enter) var(--ease-enter);
 }
 
 .registration-layer.is-open .registration-sheet {
@@ -1252,12 +1243,19 @@ a:focus-visible {
 }
 
 .sheet-handle {
+  position: relative;
   width: 42px;
   height: 4px;
   margin: 0 auto 4px;
   border-radius: var(--radius-pill);
   background: var(--stone-border);
   cursor: grab;
+}
+
+.sheet-handle::after {
+  position: absolute;
+  inset: -14px -40px;
+  content: "";
 }
 
 .sheet-header {
@@ -1392,7 +1390,7 @@ a:focus-visible {
 }
 
 .dictate-copy small {
-  color: rgba(255, 255, 255, .72);
+  color: var(--on-ink-soft);
   font-size: var(--text-caption);
   line-height: 16px;
 }
@@ -1402,7 +1400,7 @@ a:focus-visible {
   height: 10px;
   border-radius: 50%;
   background: var(--sun);
-  animation: mic-pulse 1.8s var(--ease-enter) infinite;
+  animation: mic-pulse calc(var(--duration-drift) / 2) var(--ease-enter) infinite;
 }
 
 .tray-feedback {
@@ -1414,7 +1412,7 @@ a:focus-visible {
   line-height: 22px;
   opacity: 0;
   transform: translateY(5px);
-  transition: opacity 220ms var(--ease-enter), transform 220ms var(--ease-enter);
+  transition: opacity var(--duration-enter) var(--ease-enter), transform var(--duration-enter) var(--ease-enter);
 }
 
 .tray-feedback.is-visible {
@@ -1525,7 +1523,7 @@ a:focus-visible {
   object-fit: contain;
   mix-blend-mode: multiply;
   opacity: 1;
-  transition: opacity 260ms var(--ease-exit);
+  transition: opacity var(--duration-exit) var(--ease-exit);
 }
 
 .video-slot .loop.is-hidden {
@@ -1539,7 +1537,7 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 260ms var(--ease-enter);
+  transition: opacity var(--duration-enter) var(--ease-enter);
 }
 
 .video-fallback.is-visible {
@@ -1577,10 +1575,25 @@ a:focus-visible {
   padding: 2px 0;
 }
 
+.timeline-time,
+.task-time,
+.shift-stat strong,
+.pending-count,
+.status-time,
+.clinical-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-time,
+.task-time,
+.time-nowrap {
+  white-space: nowrap;
+}
+
 .timeline-item {
   position: relative;
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 62px 1fr;
   gap: 10px;
   min-height: 72px;
   padding: 10px 0 14px 18px;
@@ -1713,7 +1726,7 @@ a:focus-visible {
 }
 
 .faq-question .detail-chevron {
-  transition: transform 300ms var(--ease-enter), color 300ms var(--ease-enter);
+  transition: transform var(--duration-enter) var(--ease-enter), color var(--duration-enter) var(--ease-enter);
 }
 
 .faq-item.is-open .faq-question .detail-chevron {
@@ -1728,7 +1741,7 @@ a:focus-visible {
   color: var(--body);
   font-size: var(--text-small);
   line-height: 22px;
-  transition: grid-template-rows 320ms var(--ease-enter), padding 320ms var(--ease-enter);
+  transition: grid-template-rows var(--duration-enter) var(--ease-enter), padding var(--duration-enter) var(--ease-enter);
 }
 
 .faq-answer > div {
@@ -1838,7 +1851,7 @@ a:focus-visible {
 .contact-actions .primary-button,
 .contact-actions .secondary-button {
   flex: 1;
-  min-height: 44px;
+  min-height: 56px;
   padding: 8px 10px;
   font-size: var(--text-caption);
 }
@@ -1867,9 +1880,9 @@ a:focus-visible {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  font-size: 10px;
+  font-size: var(--text-caption);
   font-weight: 600;
-  line-height: 13px;
+  line-height: 15px;
   transition: color var(--duration-enter) var(--ease-enter),
     transform var(--duration-press) var(--ease-press);
 }
@@ -1903,7 +1916,7 @@ a:focus-visible {
   justify-content: center;
   background: var(--canvas);
   opacity: 1;
-  transition: opacity 300ms var(--ease-exit), visibility 300ms var(--ease-exit);
+  transition: opacity var(--duration-exit) var(--ease-exit), visibility var(--duration-exit) var(--ease-exit);
 }
 
 .splash-layer.is-leaving {
@@ -1949,7 +1962,7 @@ a:focus-visible {
   font-weight: 500;
   line-height: 48px;
   letter-spacing: -0.02em;
-  animation: card-in 500ms var(--ease-enter) both;
+  animation: card-in var(--duration-enter) var(--ease-enter) both;
 }
 
 .splash-tagline {
@@ -1958,13 +1971,14 @@ a:focus-visible {
   color: var(--body);
   font-size: var(--text-small);
   line-height: 23px;
-  animation: card-in 500ms var(--ease-enter) 80ms both;
+  animation: card-in var(--duration-enter) var(--ease-enter) calc(var(--stagger) * 2) both;
 }
 
 .splash-skip {
-  min-height: 44px;
+  min-height: 56px;
+  min-width: 56px;
   margin-top: 8px;
-  padding: 8px 16px;
+  padding: 8px 24px;
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--muted);
@@ -1991,10 +2005,10 @@ a:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 32px;
-  background: rgba(251, 250, 249, .88);
+  background: var(--veil-canvas);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 260ms var(--ease-enter);
+  transition: opacity var(--duration-enter) var(--ease-enter);
 }
 
 .celebration-layer.is-visible {
@@ -2016,7 +2030,7 @@ a:focus-visible {
   box-shadow: inset 0 0 0 1px var(--stone);
   text-align: center;
   transform: translateY(18px) scale(0.96);
-  transition: transform 420ms var(--ease-enter);
+  transition: transform var(--duration-enter) var(--ease-enter);
 }
 
 .celebration-layer.is-visible .celebration-card {
@@ -2046,7 +2060,7 @@ a:focus-visible {
   justify-content: center;
   width: 126px;
   height: 126px;
-  animation: mascot-pop 620ms var(--ease-enter) both;
+  animation: mascot-pop var(--duration-enter) var(--ease-enter) both;
 }
 
 .celebration-mascot .celebration-doctor-image {
@@ -2094,36 +2108,31 @@ a:focus-visible {
 .view.is-active .timeline-item:nth-child(1),
 .view.is-active .visit-card:nth-child(1),
 .view.is-active .contact-card:nth-child(1),
-.view.is-active .faq-item:nth-child(1) { animation-delay: 40ms; }
+.view.is-active .faq-item:nth-child(1) { animation-delay: calc(var(--stagger) * 1); }
 .view.is-active .patient-card:nth-child(2),
 .view.is-active .task-card:nth-child(2),
 .view.is-active .timeline-item:nth-child(2),
 .view.is-active .visit-card:nth-child(2),
 .view.is-active .contact-card:nth-child(2),
-.view.is-active .faq-item:nth-child(2) { animation-delay: 80ms; }
+.view.is-active .faq-item:nth-child(2) { animation-delay: calc(var(--stagger) * 2); }
 .view.is-active .patient-card:nth-child(3),
 .view.is-active .task-card:nth-child(3),
 .view.is-active .timeline-item:nth-child(3),
 .view.is-active .visit-card:nth-child(3),
 .view.is-active .contact-card:nth-child(3),
-.view.is-active .faq-item:nth-child(3) { animation-delay: 120ms; }
+.view.is-active .faq-item:nth-child(3) { animation-delay: calc(var(--stagger) * 3); }
 .view.is-active .patient-card:nth-child(4),
 .view.is-active .task-card:nth-child(4),
 .view.is-active .timeline-item:nth-child(4),
 .view.is-active .visit-card:nth-child(4),
 .view.is-active .contact-card:nth-child(4),
-.view.is-active .faq-item:nth-child(4) { animation-delay: 160ms; }
-.view.is-active .onboarding-card:nth-child(1) .onboarding-card-copy { animation-delay: 40ms; }
-.view.is-active .onboarding-card:nth-child(2) .onboarding-card-copy { animation-delay: 80ms; }
+.view.is-active .faq-item:nth-child(4) { animation-delay: calc(var(--stagger) * 4); }
+.view.is-active .onboarding-card:nth-child(1) .onboarding-card-copy { animation-delay: calc(var(--stagger) * 1); }
+.view.is-active .onboarding-card:nth-child(2) .onboarding-card-copy { animation-delay: calc(var(--stagger) * 2); }
 
 @keyframes check-draw {
   from { stroke-dashoffset: 32; }
   to { stroke-dashoffset: 0; }
-}
-
-@keyframes mascot-float {
-  from { transform: translate3d(0, 0, 0) rotate(-2deg); }
-  to { transform: translate3d(0, -9px, 0) rotate(2deg); }
 }
 
 @keyframes mascot-pop {
@@ -2150,7 +2159,7 @@ a:focus-visible {
 }
 
 .pending-count.is-updating {
-  animation: number-pop 360ms var(--ease-enter);
+  animation: number-pop var(--duration-enter) var(--ease-enter);
 }
 
 @media (max-width: 499px) {
@@ -2215,7 +2224,6 @@ a:focus-visible {
 
   .confetti-layer,
   .dictate-pulse,
-  .empty-mascot,
   .splash-mascot,
   .celebration-mascot {
     animation: none;

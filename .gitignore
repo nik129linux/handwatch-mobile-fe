@@ -1,2 +1,4 @@
 .playwright-cli/
 media/raw/output.log
+shots/
+*-BRIEF.md

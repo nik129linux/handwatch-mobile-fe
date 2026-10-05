@@ -237,8 +237,9 @@
 
   function renderEmptyPending() {
     var pieces = '';
+    var stagger = getStaggerMs();
     for (var index = 1; index <= 12; index += 1) {
-      pieces += '<span class="confetti-piece" style="--confetti-delay:' + (index * 35) + 'ms"></span>';
+      pieces += '<span class="confetti-piece" style="--confetti-delay:' + (index * stagger) + 'ms"></span>';
     }
     return '<div class="empty-state" data-empty-state>' +
       '<div class="confetti-layer" aria-hidden="true">' + pieces + '</div>' +
@@ -266,7 +267,7 @@
     var patientTasks = TASKS.filter(function (task) { return task.patientId === patient.id; });
     return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><p class="view-subtitle">Detalle del turno</p><h1 class="view-title small-title">Ficha del paciente</h1></div></div>' +
       '<div class="detail-hero"><span class="patient-avatar">' + escapeHtml(patient.initials) + '</span><div class="detail-hero-copy"><h2 class="detail-name">' + escapeHtml(patient.name) + '</h2><span class="detail-room">' + escapeHtml(patient.room) + '</span><span class="badge ' + (patient.status === 'critical' ? 'badge-critical' : 'badge-neutral') + ' detail-status">' + escapeHtml(patient.status === 'critical' ? patient.statusLabel : 'En seguimiento') + '</span></div></div>' +
-      '<div class="detail-section"><h2 class="detail-section-title">Registro clínico</h2><div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico">' + escapeHtml(patient.clinical) + '</button><button type="button" class="reveal-button" data-reveal>Mostrar dato clínico ' + icon('eye') + '</button><p class="view-copy muted-copy">Oculto por defecto porque esta pantalla también se ve desde la cama.</p></div></div>' +
+      '<div class="detail-section"><h2 class="detail-section-title">Registro clínico</h2><div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' + escapeHtml(patient.clinical) + '</button><button type="button" class="reveal-button" data-reveal aria-expanded="false">Mostrar dato clínico ' + icon('eye') + '</button><p class="view-copy muted-copy">Oculto por defecto porque esta pantalla también se ve desde la cama.</p></div></div>' +
       '<div class="privacy-note">' + icon('shield') + '<span>El dato sensible queda detrás de un toque deliberado. Si decides comunicarlo, hazlo con calma.</span></div>' +
       '<div class="detail-section"><h2 class="detail-section-title">Eventos del turno</h2><div class="detail-list">' + patientTasks.map(function (task) { return detailRow(task.time + ' · ' + task.title, isConfirmed(task.id) ? 'Confirmado' : 'Pendiente', false); }).join('') + '</div></div>' +
       '<p class="view-copy muted-copy">La familia recibe solo un resumen del turno, sin valores clínicos.</p></div>';
@@ -284,19 +285,19 @@
 
   function renderPatient() {
     return '<div class="patient-intro"><p class="eyebrow">Hab. 304-B</p><h1 class="view-title">Mi estado</h1><p class="view-copy">Aquí ve lo que va pasando, en palabras sencillas.</p></div>' +
-      '<div class="next-card"><span class="next-card-icon">' + icon('clock') + '</span><span class="next-card-copy"><strong>Lo que sigue</strong><span>La enfermera vuelve a hacer la ronda a la 1:00 p. m.</span></span></div>' +
+      '<div class="next-card"><span class="next-card-icon">' + icon('clock') + '</span><span class="next-card-copy"><strong>Lo que sigue</strong><span>La enfermera vuelve a hacer la ronda <span class="time-nowrap">a la 1:00 p. m.</span></span></span></div>' +
       '<div class="onboarding-block"><div class="onboarding-intro"><h2 class="section-label">Así funciona</h2><p>Dos ideas sencillas</p></div><div class="onboarding-grid">' + onboardingCard('onboarding-1', 'Lo que sigue', 'Vea el próximo paso del turno.') + onboardingCard('onboarding-2', 'Cómo pedir ayuda', 'Use el timbre cuando necesite algo.') + '</div></div>' +
       '<div class="section-heading"><h2 class="section-label">Qué pasó hoy</h2><span class="section-meta">En simple</span></div>' + timeline(TIMELINE_PACIENTE);
   }
 
-  function faqItem(id, question, answer) {
-    return '<article class="faq-item" data-faq-item="' + escapeHtml(id) + '"><button type="button" class="faq-question" data-faq="' + escapeHtml(id) + '" aria-expanded="false"><span>' + escapeHtml(question) + '</span><span class="detail-chevron">' + icon('chevron') + '</span></button><div class="faq-answer"><div>' + escapeHtml(answer) + '</div></div></article>';
+  function faqItem(id, question, answerHtml) {
+    return '<article class="faq-item" data-faq-item="' + escapeHtml(id) + '"><button type="button" class="faq-question" data-faq="' + escapeHtml(id) + '" aria-expanded="false"><span>' + escapeHtml(question) + '</span><span class="detail-chevron">' + icon('chevron') + '</span></button><div class="faq-answer"><div>' + answerHtml + '</div></div></article>';
   }
 
   function renderQuestions() {
     return '<div class="view-header"><div class="view-header-copy"><p class="view-subtitle">Hab. 304-B</p><h1 class="view-title small-title">Preguntas</h1></div></div>' +
       '<p class="view-copy">Si hay algo que no tiene claro, puede preguntar con tranquilidad.</p>' +
-      '<div class="faq-list">' + faqItem('round', '¿Cuándo vuelve la enfermera?', 'La próxima ronda está prevista para la 1:00 p. m. Si llega un poco más tarde, el equipo le avisará.') + faqItem('help', '¿Cómo pido algo?', 'Use el timbre de la habitación. La enfermera responderá lo más pronto posible.') + faqItem('privacy', '¿Qué información veo aquí?', 'Ve un resumen del turno en palabras sencillas. Su equipo decide qué información clínica debe recibir.') + '</div>';
+      '<div class="faq-list">' + faqItem('round', '¿Cuándo vuelve la enfermera?', 'La próxima ronda está prevista para <span class="time-nowrap">la 1:00 p. m.</span> Si llega un poco más tarde, el equipo le avisará.') + faqItem('help', '¿Cómo pido algo?', 'Use el timbre de la habitación. La enfermera responderá lo más pronto posible.') + faqItem('privacy', '¿Qué información veo aquí?', 'Ve un resumen del turno en palabras sencillas. Su equipo decide qué información clínica debe recibir.') + '</div>';
   }
 
   function renderFamily() {
@@ -305,14 +306,14 @@
     return '<div class="patient-intro"><p class="eyebrow">' + escapeHtml(patient.name) + ' · ' + escapeHtml(patient.room) + '</p><h1 class="view-title">Qué pasa</h1><p class="view-copy">Un resumen sencillo para acompañar' + objectPronoun + ' con tranquilidad.</p></div>' +
       '<div class="family-summary"><strong>El equipo está con ' + escapeHtml(patient.pronoun) + '</strong><span>El tratamiento de la mañana va avanzando con normalidad.</span></div>' +
       '<div class="section-heading"><h2 class="section-label">Hoy</h2><span class="section-meta">Sin datos clínicos</span></div>' + timeline(familyTimeline(patient)) +
-      '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de 3:00 p. m. a 5:00 p. m.</span></span><span class="detail-chevron">' + icon('chevron') + '</span></div>';
+      '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de <span class="time-nowrap">3:00 p. m.</span> a <span class="time-nowrap">5:00 p. m.</span></span></span></div>';
   }
 
   function renderContact() {
     return '<div class="view-header"><div class="view-header-copy"><p class="view-subtitle">Familia de María González</p><h1 class="view-title small-title">Contacto</h1></div></div>' +
       '<p class="view-copy">Si necesita información sobre la visita, el equipo de turno puede orientarla.</p>' +
-      '<div class="contact-card"><span class="contact-icon">' + icon('phone') + '</span><span class="contact-copy"><strong>Enfermera de turno</strong><span>Elena · vuelve a la 1:00 p. m.</span></span></div>' +
-      '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de 3:00 p. m. a 5:00 p. m.</span></span></div>' +
+      '<div class="contact-card"><span class="contact-icon">' + icon('phone') + '</span><span class="contact-copy"><strong>Enfermera de turno</strong><span>Elena · vuelve a <span class="time-nowrap">la 1:00 p. m.</span></span></span></div>' +
+      '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de <span class="time-nowrap">3:00 p. m.</span> a <span class="time-nowrap">5:00 p. m.</span></span></span></div>' +
       '<div class="contact-actions"><button type="button" class="primary-button">Llamar al turno</button><button type="button" class="secondary-button">Ver horarios</button></div>';
   }
 
@@ -486,7 +487,18 @@
     renderBottomNav();
   }
 
+  function getStaggerMs() {
+    var raw = getComputedStyle(document.documentElement).getPropertyValue('--stagger').trim();
+    var value = parseFloat(raw);
+    return isFinite(value) ? value : 40;
+  }
+  function getDurationEnterMs() {
+    var raw = getComputedStyle(document.documentElement).getPropertyValue('--duration-enter').trim();
+    var value = parseFloat(raw);
+    return isFinite(value) ? value : 360;
+  }
   function animateSharedElement(sourceCard, destination) {
+    if (reducedMotion.matches) return;
     if (!sourceCard || !destination.animate) return;
     var target = destination.querySelector('.detail-hero');
     if (!target) return;
@@ -498,7 +510,7 @@
     target.animate([
       { transform: 'translate3d(' + x + 'px, ' + y + 'px, 0) scale(' + scale + ', ' + scale + ')', opacity: 0.72 },
       { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 }
-    ], { duration: 420, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'both' });
+    ], { duration: getDurationEnterMs(), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'both' });
   }
 
   function closePatientDetail() {
@@ -608,7 +620,8 @@
   function showCompletion() {
     if (state.completionTimer) window.clearTimeout(state.completionTimer);
     var pieces = '';
-    for (var index = 1; index <= 12; index += 1) pieces += '<span class="confetti-piece" style="--confetti-delay:' + (index * 30) + 'ms"></span>';
+    var stagger = getStaggerMs();
+    for (var index = 1; index <= 12; index += 1) pieces += '<span class="confetti-piece" style="--confetti-delay:' + (index * stagger) + 'ms"></span>';
     app.celebrationLayer.innerHTML = '<div class="celebration-card"><div class="celebration-mascot"><img class="celebration-doctor-image" src="media/frames/doctora-white.png" alt="Doctora celebrando"></div><span class="completion-mark">' + icon('check') + '</span><h2>Turno al día</h2><p>Todo confirmado. El equipo puede seguir con tranquilidad.</p><button type="button" class="primary-button" data-close-celebration>Seguir con el turno</button><div class="confetti-layer" aria-hidden="true">' + pieces + '</div></div>';
     app.celebrationLayer.classList.add('is-visible');
     app.celebrationLayer.setAttribute('aria-hidden', 'false');
@@ -674,8 +687,16 @@
     if (reveal) {
       var value = app.screen.querySelector('.clinical-value');
       var revealButton = app.screen.querySelector('.reveal-button');
-      if (value) value.classList.toggle('is-revealed');
-      if (revealButton) revealButton.classList.toggle('is-revealed');
+      var willReveal = value ? !value.classList.contains('is-revealed') : revealButton ? !revealButton.classList.contains('is-revealed') : false;
+      if (value) {
+        value.classList.toggle('is-revealed', willReveal);
+        value.setAttribute('aria-expanded', String(willReveal));
+      }
+      if (revealButton) {
+        revealButton.classList.toggle('is-revealed', willReveal);
+        revealButton.setAttribute('aria-expanded', String(willReveal));
+        revealButton.innerHTML = (willReveal ? 'Ocultar dato clínico ' : 'Mostrar dato clínico ') + icon('eye');
+      }
       return;
     }
 

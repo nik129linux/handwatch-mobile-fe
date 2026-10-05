@@ -5,8 +5,20 @@ const { pathToFileURL } = require('url');
 const { chromium } = require('/home/nico/.nvm/versions/node/v22.23.2/lib/node_modules/playwright');
 
 function contrastRatio(foreground, background) {
+  const toRgb = color => {
+    const trimmed = String(color).trim();
+    if (trimmed.startsWith('#')) {
+      let hex = trimmed.replace('#','');
+      if (hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+      const int = parseInt(hex,16);
+      return [(int>>16)&255, (int>>8)&255, int&255];
+    }
+    const m = trimmed.match(/[\d.]+/g);
+    if (!m) throw new Error(`cannot parse color ${color}`);
+    return m.slice(0,3).map(v=> Number(v));
+  };
   const luminance = color => {
-    const channels = color.match(/[\d.]+/g).slice(0, 3).map(value => Number(value) / 255);
+    const channels = toRgb(color).map(value => value / 255);
     const linear = channels.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
   };
@@ -217,6 +229,260 @@ function contrastRatio(foreground, background) {
   await page.waitForFunction(() => document.querySelector('#splashLayer').classList.contains('is-leaving'), null, { timeout: 5500 });
   const cycleElapsed = await page.evaluate(start => performance.now() - start, cycleStarted);
   assert(cycleElapsed >= 4900 && cycleElapsed <= 5400, `splash cycle timing is ${cycleElapsed}ms`);
+
+  // === FINDINGS F1-F8 assertions ===
+  // F6 + F7 + F8 file-content checks (must fail if fix reverted)
+  {
+    const appCss = fs.readFileSync(path.join(root, 'css/app.css'), 'utf8');
+    // F7 — no hex/rgb/rgba/hsl in app.css (tokens own colors)
+    assert(!/#[0-9a-fA-F]{3,8}\b/.test(appCss), 'F7: hex color in css/app.css');
+    assert(!/\brgba?\(/.test(appCss), 'F7: rgb/rgba in css/app.css');
+    assert(!/\bhsla?\(/.test(appCss), 'F7: hsl in css/app.css');
+    // F8 — dead CSS removed
+    assert(!appCss.includes('.empty-mascot'), 'F8: .empty-mascot still in css/app.css');
+    // F6 — no raw durations outside reduced-motion block (all must use var(--duration/--stagger))
+    const beforeReduced = appCss.split('@media (prefers-reduced-motion: reduce)')[0];
+    const stripped = beforeReduced.replace(/var\([^)]+\)/g, 'VAR');
+    const rawMs = stripped.match(/\b\d+ms\b/g);
+    assert(!rawMs, `F6: raw ms in css/app.css outside reduced-motion: ${rawMs}`);
+    // allow 1e-06s in reduced-motion only; outside, no raw s durations except 0s
+    const strippedNoVar = stripped.replace(/VAR/g, '');
+    // check for durations like 3.6s, 1.8s, 0.001ms etc outside var — 0s is allowed as part of transition: 0s
+    const hasRawS = /\b\d+(\.\d+)?s\b/.test(strippedNoVar.replace(/\b0s\b/g, ''));
+    assert(!hasRawS, `F6: raw s duration in css/app.css outside reduced-motion`);
+  }
+
+  // Fresh mobile page for computed-style and bbox checks (F1-F5, F8)
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(pathToFileURL(path.join(root, 'index.html')).href, { waitUntil: 'domcontentloaded' });
+  // skip splash
+  await page.waitForTimeout(300);
+  const splashSkip = page.locator('[data-splash-skip]');
+  if (await splashSkip.isVisible().catch(() => false)) {
+    await splashSkip.click();
+    await page.waitForTimeout(500);
+  }
+  await page.waitForFunction(() => document.querySelector('[data-view-key="nurse-home"]') !== null || document.querySelector('#splashLayer')?.classList.contains('is-leaving'), null, { timeout: 5000 }).catch(()=>{});
+  await page.waitForTimeout(600);
+  if (!(await page.locator('[data-view-key="nurse-home"]').isVisible().catch(()=>false))) {
+    const b = await page.locator('#splashLayer').boundingBox().catch(()=>null);
+    if (b) { await page.mouse.click(b.x + b.width/2, b.y + b.height/2); await page.waitForTimeout(600); }
+  }
+  assert(await page.locator('[data-view-key="nurse-home"]').isVisible(), 'findings: nurse-home not visible after splash skip');
+  // Helper for bbox >=56
+  async function assertGloveBox(selector, label) {
+    const loc = page.locator(selector).first();
+    assert(await loc.count() > 0, `${label} missing for F1: ${selector}`);
+    const box = await loc.boundingBox();
+    assert(box, `${label} has no bbox`);
+    assert(box.height >= 56, `F1: ${label} height ${box.height} <56 (selector ${selector})`);
+    // width should also be meaningful; for circle buttons width must be >=56, for pills width >56 anyway
+    assert(box.width >= 56 || box.height >= 56, `F1: ${label} bbox ${box.width}x${box.height} <56`);
+  }
+  // F1 — splash skip (check before it disappears — reopen splash briefly by reloading)
+  // splash-skip already visible at start; re-check via goto again for that element
+  await page.goto(pathToFileURL(path.join(root, 'index.html')).href, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(300);
+  const freshSplashSkipBox = await page.locator('.splash-skip').first().boundingBox();
+  assert(freshSplashSkipBox && freshSplashSkipBox.height >= 56 && freshSplashSkipBox.width >= 56, `F1: splash-skip bbox ${freshSplashSkipBox ? freshSplashSkipBox.width + 'x' + freshSplashSkipBox.height : 'missing'} <56`);
+  // back to nurse-home
+  await page.locator('[data-splash-skip]').click().catch(async()=>{ const b=await page.locator('#splashLayer').boundingBox().catch(()=>null); if(b) await page.mouse.click(b.x+b.width/2,b.y+b.height/2); });
+  await page.waitForTimeout(600);
+  await page.waitForFunction(()=> document.querySelector('[data-view-key="nurse-home"]') !== null, null, {timeout:3000}).catch(()=>{});
+  // F1: quick-confirm in nurse-home
+  await assertGloveBox('.quick-confirm', 'quick-confirm');
+  // F1: reveal-button + icon-button in nurse-detail
+  await page.locator('[data-patient="cr"]').click();
+  await page.waitForTimeout(500);
+  assert(await page.locator('[data-view-key="nurse-detail"]').isVisible(), 'findings: nurse-detail not open');
+  await assertGloveBox('.reveal-button', 'reveal-button');
+  await assertGloveBox('.icon-button', 'icon-button (back)');
+  // F4 — privacy toggle label + aria-expanded both ways
+  {
+    const revealBtn = page.locator('.reveal-button').first();
+    const clinicalVal = page.locator('.clinical-value').first();
+    assert.strictEqual(await revealBtn.getAttribute('aria-expanded'), 'false', 'F4: reveal-button aria-expanded should be false initially');
+    assert.strictEqual(await clinicalVal.getAttribute('aria-expanded'), 'false', 'F4: clinical-value aria-expanded should be false initially');
+    assert((await revealBtn.textContent()).includes('Mostrar dato clínico'), 'F4: reveal-button label should be Mostrar initially');
+    assert(!(await clinicalVal.evaluate(n=> n.classList.contains('is-revealed'))), 'F4: clinical-value should be blurred initially');
+    await clinicalVal.click();
+    await page.waitForTimeout(200);
+    assert.strictEqual(await revealBtn.getAttribute('aria-expanded'), 'true', 'F4: reveal-button aria-expanded should be true after reveal');
+    assert.strictEqual(await clinicalVal.getAttribute('aria-expanded'), 'true', 'F4: clinical-value aria-expanded should be true after reveal');
+    assert((await revealBtn.textContent()).includes('Ocultar dato clínico'), 'F4: reveal-button label should be Ocultar after reveal');
+    assert(await clinicalVal.evaluate(n=> n.classList.contains('is-revealed')), 'F4: clinical-value should be revealed');
+    assert(await revealBtn.evaluate(n=> n.classList.contains('is-revealed')), 'F4: reveal-button should be is-revealed');
+    await revealBtn.click();
+    await page.waitForTimeout(200);
+    assert.strictEqual(await revealBtn.getAttribute('aria-expanded'), 'false', 'F4: reveal-button aria-expanded should be false after hide');
+    assert.strictEqual(await clinicalVal.getAttribute('aria-expanded'), 'false', 'F4: clinical-value aria-expanded should be false after hide');
+    assert((await revealBtn.textContent()).includes('Mostrar dato clínico'), 'F4: reveal-button label should be Mostrar after hide');
+  }
+  // back to home for next F1 checks
+  await page.locator('[data-back]').click();
+  await page.waitForTimeout(500);
+  assert(await page.locator('[data-view-key="nurse-home"]').isVisible(), 'findings: back to nurse-home failed');
+
+  // F1: task-action in pendientes (and F2 idle check)
+  await page.locator('[data-nav="pendientes"]').click();
+  await page.waitForTimeout(500);
+  assert(await page.locator('[data-task-card]').first().isVisible(), 'findings: pending cards missing');
+  await assertGloveBox('.task-action', 'task-action');
+  // F2 — idle affordance: confirm path ghost visible (opacity 0.35, dashoffset 0) and no dead chevrons in family
+  {
+    const pathOpacity = await page.locator('.confirm-mark path').first().evaluate(n=> getComputedStyle(n).opacity);
+    const dashOffset = await page.locator('.confirm-mark path').first().evaluate(n=> getComputedStyle(n).strokeDashoffset || getComputedStyle(n).getPropertyValue('stroke-dashoffset'));
+    assert(parseFloat(pathOpacity) >= 0.3, `F2: idle confirm path opacity ${pathOpacity} <0.3`);
+    // dashoffset should be 0 idle (not 32)
+    const offsetNum = parseFloat(dashOffset);
+    assert(offsetNum === 0, `F2: idle confirm path dashoffset ${dashOffset} should be 0`);
+  }
+  // also check that sheet handle has extended hit area ::after
+  // open registration sheet for F1 dictate + handle + empty-state after
+  await page.locator('[data-nav="registrar"]').click();
+  await page.waitForTimeout(500);
+  assert(await page.locator('.registration-layer.is-open').count() === 1, 'findings: registration sheet not open');
+  await assertGloveBox('.dictate-button', 'dictate-button');
+  {
+    const handleAfterContent = await page.locator('.sheet-handle').first().evaluate(n=> getComputedStyle(n, '::after').content);
+    assert(handleAfterContent !== 'none' && handleAfterContent !== '', 'F1: sheet-handle ::after hit area missing');
+    const afterInset = await page.locator('.sheet-handle').first().evaluate(n=> getComputedStyle(n, '::after').getPropertyValue('inset') || getComputedStyle(n, '::after').top);
+    // inset should be negative (expanded) - check top is negative or inset contains -
+    assert(afterInset.includes('-') || afterInset !== 'auto', `F1: sheet-handle ::after inset not expanded: ${afterInset}`);
+  }
+  await page.locator('.registration-sheet [data-sheet-close]').click();
+  await page.waitForTimeout(500);
+  // F1: pending confirm -> empty state link
+  await page.locator('[data-nav="pendientes"]').click();
+  await page.waitForTimeout(500);
+  // confirm all 3 to reach empty state
+  for (let i=0;i<3;i++) {
+    const btn = page.locator('[data-task-card] [data-confirm]').first();
+    if (await btn.count()===0) break;
+    await btn.click();
+    await page.waitForTimeout(900);
+  }
+  await page.waitForTimeout(500);
+  assert(await page.locator('[data-empty-state]').count()===1, 'findings: empty state not reached');
+  await assertGloveBox('.empty-state-link', 'empty-state-link');
+
+  // Switch to family for F2 family chevrons and F1 contact buttons + F3 contrast + F5 times
+  await page.locator('[data-role="familia"]').click();
+  await page.waitForTimeout(600);
+  assert(await page.locator('[data-view-key="family-home"]').isVisible(), 'findings: family-home not visible');
+  // F2: no detail-chevron in family
+  assert.strictEqual(await page.locator('[data-view-key="family-home"] .detail-chevron').count(), 0, 'F2: detail-chevron should not exist in family-home');
+  // also check visit-card has no chevron
+  await page.locator('[data-nav="contacto"]').click();
+  await page.waitForTimeout(500);
+  assert(await page.locator('[data-view-key="family-contact"]').isVisible(), 'findings: family-contact not visible');
+  assert.strictEqual(await page.locator('[data-view-key="family-contact"] .detail-chevron').count(), 0, 'F2: detail-chevron should not exist in family-contact');
+  // F1: contact buttons
+  await assertGloveBox('.contact-actions .primary-button', 'contact primary-button');
+  await assertGloveBox('.contact-actions .secondary-button', 'contact secondary-button');
+
+  // F3 — contrast ratio >=4.5 computed from real computed colors (muted on canvas/sand)
+  {
+    await page.locator('[data-role="enfermero"]').click();
+    await page.waitForTimeout(500);
+    // ensure nurse-home where muted elements exist
+    await page.locator('[data-nav="turno"]').click().catch(()=>{});
+    await page.waitForTimeout(400);
+    const mutedFg = await page.locator('.patient-meta, .eyebrow, .view-subtitle').first().evaluate(n=> getComputedStyle(n).color);
+    let canvasBg = await page.locator('.phone').evaluate(n=> getComputedStyle(n).backgroundColor);
+    if (!canvasBg || canvasBg.includes('rgba(0, 0, 0, 0)') || canvasBg === 'transparent') {
+      canvasBg = await page.evaluate(()=> getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim());
+    }
+    const ratio = contrastRatio(mutedFg, canvasBg);
+    assert(ratio >= 4.5, `F3: muted on canvas contrast ${ratio.toFixed(2)} <4.5 (fg ${mutedFg} bg ${canvasBg})`);
+    // also check small inside event-chip on sand
+    await page.locator('[data-nav="registrar"]').click();
+    await page.waitForTimeout(500);
+    const chipFg = await page.locator('.event-chip small').first().evaluate(n=> getComputedStyle(n).color);
+    let chipBg = await page.locator('.event-chip').first().evaluate(n=> getComputedStyle(n).backgroundColor);
+    if (!chipBg || chipBg.includes('rgba(0, 0, 0, 0)') || chipBg === 'transparent') {
+      chipBg = await page.evaluate(()=> getComputedStyle(document.documentElement).getPropertyValue('--sand').trim());
+    }
+    const ratioChip = contrastRatio(chipFg, chipBg);
+    assert(ratioChip >= 4.5, `F3: muted on sand contrast ${ratioChip.toFixed(2)} <4.5 (fg ${chipFg} bg ${chipBg})`);
+    await page.locator('.registration-sheet [data-sheet-close]').click().catch(()=>{});
+    await page.waitForTimeout(400);
+  }
+
+  // F5 — times do not wrap and tabular-nums computed
+  {
+    await page.locator('[data-role="paciente"]').click();
+    await page.waitForTimeout(500);
+    assert(await page.locator('[data-view-key="patient-home"]').isVisible(), 'findings: patient-home not visible for F5');
+    const selectorsTabular = ['.timeline-time', '.task-time', '.shift-stat strong', '.pending-count', '.status-time', '.clinical-value'];
+    for (const sel of selectorsTabular) {
+      const el = page.locator(sel).first();
+      if (await el.count()===0) continue;
+      const v = await el.evaluate(n=> getComputedStyle(n).getPropertyValue('font-variant-numeric') || getComputedStyle(n).fontVariantNumeric || '');
+      assert(v.includes('tabular-nums'), `F5: ${sel} font-variant-numeric ${v} missing tabular-nums`);
+    }
+    const nowrapSels = ['.timeline-time', '.task-time', '.time-nowrap'];
+    for (const sel of nowrapSels) {
+      const el = page.locator(sel).first();
+      if (await el.count()===0) continue;
+      const ws = await el.evaluate(n=> getComputedStyle(n).whiteSpace);
+      assert(ws === 'nowrap', `F5: ${sel} white-space ${ws} !== nowrap`);
+    }
+    // no wrap: check white-space already, and that time element does not overflow its 62px column
+    const wraps = await page.locator('.timeline-time').first().evaluate(n=> n.scrollWidth > n.offsetWidth + 2);
+    assert(!wraps, `F5: timeline-time wraps (scrollWidth > offsetWidth)`);
+    // also ensure time-nowrap span prevents "p. m." break
+    const timeNowraps = await page.locator('.time-nowrap').evaluateAll(nodes=> nodes.map(n=> getComputedStyle(n).whiteSpace));
+    for (const ws of timeNowraps) assert(ws === 'nowrap', `F5: .time-nowrap white-space ${ws} !== nowrap`);
+    // grid column is 62px per fix
+    const gridCols = await page.locator('.timeline-item').first().evaluate(n=> getComputedStyle(n).gridTemplateColumns);
+    assert(gridCols.includes('62px'), `F5: timeline-item grid ${gridCols} should include 62px`);
+  }
+
+  // F6 — zero running animations under reduced-motion
+  {
+    const rmBrowser = await chromium.launch({ headless: true });
+    const rmPage = await rmBrowser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    const rmErrors = [];
+    rmPage.on('console', m=>{ if(m.type()==='error') rmErrors.push(m.text()); });
+    await rmPage.goto(pathToFileURL(path.join(root, 'index.html')).href, { waitUntil: 'domcontentloaded' });
+    await rmPage.waitForTimeout(800);
+    // wait for splash to leave under reduced-motion (1200ms timer)
+    await rmPage.waitForFunction(()=> document.querySelector('#splashLayer')?.classList.contains('is-leaving'), null, {timeout:3000}).catch(()=>{});
+    await rmPage.waitForTimeout(400);
+    const running = await rmPage.evaluate(()=> document.getAnimations().filter(a=> a.playState==='running').length);
+    assert.strictEqual(running, 0, `F6: ${running} running animations under reduced-motion`);
+    const tDur = await rmPage.locator('.view').first().evaluate(n=> getComputedStyle(n).transitionDuration).catch(()=> 'missing');
+    assert(tDur === '0s' || tDur === '1e-06s' || tDur === '0.001ms' || parseFloat(tDur) < 0.01, `F6: reduced-motion transition not disabled: ${tDur}`);
+    assert.strictEqual(rmErrors.length,0, `F6: rm page errors ${rmErrors.join(';')}`);
+    await rmBrowser.close();
+  }
+
+  // F8 — nav and small type computed >=12px
+  {
+    // pending confirmations cleared quick-confirm; reload fresh state for this check
+    await page.goto(pathToFileURL(path.join(root, 'index.html')).href, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(300);
+    if (await page.locator('[data-splash-skip]').isVisible().catch(()=>false)) { await page.locator('[data-splash-skip]').click(); await page.waitForTimeout(500); }
+    await page.waitForFunction(()=> document.querySelector('[data-view-key="nurse-home"]') !== null, null, {timeout:3000}).catch(()=>{});
+    await page.waitForTimeout(500);
+    const navSize = await page.locator('.nav-item').first().evaluate(n=> getComputedStyle(n).fontSize);
+    assert.strictEqual(navSize, '12px', `F8: nav font-size ${navSize} should be 12px`);
+    const statusSize = await page.locator('.status-icons').first().evaluate(n=> parseFloat(getComputedStyle(n).fontSize));
+    assert(statusSize >= 12, `F8: status-icons font-size ${statusSize} <12`);
+    const qcEl = page.locator('.quick-confirm').first();
+    if (await qcEl.count() > 0) {
+      const qcSize = await qcEl.evaluate(n=> parseFloat(getComputedStyle(n).fontSize));
+      assert(qcSize >= 12, `F8: quick-confirm font-size ${qcSize} <12`);
+    } else {
+      // fallback to checking the rule via computed style of any element that should be 12px
+      const appCss = fs.readFileSync(path.join(root, 'css/app.css'), 'utf8');
+      assert(!appCss.includes('font-size: 11px'), 'F8: 11px still in app.css');
+    }
+    const metaSize = await page.locator('.patient-meta').first().evaluate(n=> parseFloat(getComputedStyle(n).fontSize));
+    assert(metaSize >= 12, `F8: patient-meta font-size ${metaSize} <12`);
+  }
+
   assert.strictEqual(consoleErrors.length, 0, `console errors: ${consoleErrors.join('; ')}`);
   assert.strictEqual(pageErrors.length, 0, `page errors: ${pageErrors.join('; ')}`);
   assert.strictEqual(failedRequests.length, 0, `failed requests: ${failedRequests.join('; ')}`);

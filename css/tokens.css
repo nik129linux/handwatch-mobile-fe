@@ -12,7 +12,7 @@
   --ink: #121212;
   --charcoal: #343433;
   --body: #474645;
-  --muted: #7e7e7d;
+  --muted: #6b6b6a;
   --stone-border: #e5d5c3;
   --nurse: #0086fc;
   --patient: #00ca48;
@@ -27,6 +27,9 @@
   --patient-soft: #e5f9ec;
   --family-soft: #fff4d6;
   --critical-soft: #fff0f0;
+  --veil-ink: rgba(18, 18, 18, .32);
+  --veil-canvas: rgba(251, 250, 249, .88);
+  --on-ink-soft: rgba(255, 255, 255, .72);
   --accent: var(--nurse);
   --accent-soft: var(--nurse-soft);
   --font-display: "Bricolage Grotesque", sans-serif;
@@ -37,6 +40,9 @@
   --duration-enter: 360ms;
   --duration-exit: 240ms;
   --duration-press: 120ms;
+  --stagger: 40ms;
+  --duration-drift: 3.6s;
+  --duration-burst: 1200ms;
   --phone-width: 390px;
   --phone-height: 844px;
   --phone-radius: 48px;
